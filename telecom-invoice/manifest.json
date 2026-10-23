@@ -1,0 +1,13 @@
+{
+  "name": "倚盟進貨單管理",
+  "short_name": "倚盟進貨單",
+  "start_url": "/telecom-invoice/",
+  "scope": "/telecom-invoice/",
+  "display": "standalone",
+  "background_color": "#FFF8F1",
+  "theme_color": "#E8541E",
+  "icons": [
+    { "src": "/telecom-invoice/icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/telecom-invoice/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
