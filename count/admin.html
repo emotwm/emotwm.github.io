@@ -182,7 +182,7 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
       <div class="bmeta">
         <span id="mMonth"></span>
         <span id="mCount"></span>
-        <span style="color:#9AA1AA">版本 2026-10-23</span>
+        <span style="color:#9AA1AA">版本 2026-10-23b</span>
       </div>
     </div>
     <a class="logout" href="/" title="回倚盟工具箱">☰ 工具箱</a>
@@ -233,6 +233,14 @@ const HQ_TOKEN_DEFAULT = '27707232';   /* 總部從工具箱進來時自動帶�
 let TOKEN = '', ROWS = [], ALL = [];
 
 /* ── 登入 ── */
+/* 進主畫面。SSO 進來時不等後台回應,先進去再載資料 */
+function enterApp(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='';
+  const d=new Date();
+  const mon=document.getElementById('mon');
+  if(!mon.value) mon.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
 function login(){
   const v = document.getElementById('pw').value.trim();
   if(!v){ document.getElementById('gateErr').textContent='請輸入通關密語'; return; }
@@ -245,10 +253,7 @@ function login(){
       else     localStorage.removeItem('hqtk');
       sessionStorage.setItem('hqtk', TOKEN);
     }catch(e){}
-    document.getElementById('gate').style.display='none';
-    document.getElementById('app').style.display='';
-    const d=new Date();
-    document.getElementById('mon').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    enterApp();
     load();
   }).catch(e=>{
     TOKEN='';
@@ -344,8 +349,12 @@ async function load(){
     document.getElementById('lastSync').textContent =
       '更新於 ' + new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   }catch(e){
-    em.textContent = String(e.message||e);
-    toast(String(e.message||e));
+    const raw = String((e && e.message) || e);
+    /* fetch 失敗瀏覽器只給英文,換成看得懂的話 */
+    const why = /fetch|network|Load failed|NetworkError/i.test(raw)
+      ? '連不到總部,這台裝置好像沒有網路。有網路之後按「查詢」再試一次。' : raw;
+    em.textContent = why;
+    toast(why);
   }
 }
 
@@ -565,8 +574,11 @@ if(location.protocol !== 'file:'){
 }
 try{
   if(SSO && SSO.role === 'admin'){
-    document.getElementById('pw').value = HQ_TOKEN_DEFAULT;
-    login();
+    /* 工具箱已經驗過身分了,不用再打密語,也不等後台回應 */
+    TOKEN = HQ_TOKEN_DEFAULT;
+    try{ localStorage.setItem('hqtk', TOKEN); sessionStorage.setItem('hqtk', TOKEN); }catch(e){}
+    enterApp();
+    load();
   }else{
     let t=null;
     try{ t = localStorage.getItem('hqtk'); }catch(e){}
