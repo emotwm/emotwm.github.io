@@ -151,6 +151,12 @@ button.primary:active{background:#B83D10}
 @keyframes emoPop{0%{opacity:0;transform:scale(.4)}100%{opacity:1;transform:scale(1)}}
 @keyframes emoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @media (prefers-reduced-motion:reduce){.hero .mascot,.hero .mascot.jump,.bubble,.bubble.pop{animation:none}}
+/* ══ 手機也看得到心情小語：泡泡放在吉祥物頭上 ══ */
+@media (max-width:640px){
+ .hero .pic{flex-direction:column-reverse;align-items:center;gap:0}
+ .bubble{display:block;margin:0 0 10px;font-size:13px;line-height:1.45;padding:7px 11px;border-radius:14px;white-space:nowrap;max-width:none;text-align:center;transform-origin:50% 100%}
+ .bubble::after{left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-top-color:#FFE8D3;border-bottom:0}
+}
 </style>
 </head>
 <body>
