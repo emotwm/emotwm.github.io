@@ -98,6 +98,27 @@ input:focus{outline:2px solid var(--brand);outline-offset:-1px}
 .st-renxiong{--st-bg:#F6FBF5;--st-c:#5E9B53;--st-sh:rgba(94,155,83,.22)}
 .st-kaixuan{--st-bg:#F0F9FE;--st-c:#4F96F1;--st-sh:rgba(79,150,241,.22)}
 @media (max-width:640px){#homeGrid .card{flex:1 1 100%}#homeGrid .card .shop{width:120px}}
+/* ══ 立體按鈕：底下一條較深的「厚度」，按下去會往下沉 ══ */
+.card{border-bottom-width:1px;box-shadow:0 6px 0 #E8C8A8,0 14px 24px rgba(201,120,60,.16);transition:transform .12s,box-shadow .12s}
+.card:hover{transform:translateY(-3px);box-shadow:0 9px 0 #E8C8A8,0 20px 30px rgba(232,84,30,.20)}
+.card:active{transform:translateY(5px);box-shadow:0 1px 0 #E8C8A8,0 4px 8px rgba(201,120,60,.14)}
+.card .arrow{background:linear-gradient(180deg,#FF7A45 0%,var(--brand) 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 #B83D10,0 6px 10px rgba(184,61,16,.30)}
+#homeGrid .card{box-shadow:0 6px 0 var(--st-d),0 14px 24px var(--st-sh)}
+#homeGrid .card:hover{box-shadow:0 9px 0 var(--st-d),0 20px 30px var(--st-sh)}
+#homeGrid .card:active{box-shadow:0 1px 0 var(--st-d),0 4px 8px var(--st-sh)}
+#homeGrid .card .arrow{background:var(--st-c);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 var(--st-dd),0 6px 10px var(--st-sh)}
+.st-dingshan{--st-d:#F2B994;--st-dd:#B8501A}
+.st-yangming{--st-d:#EDCF82;--st-dd:#B57C10}
+.st-houchang{--st-d:#F2AEA1;--st-dd:#BF3A26}
+.st-renxiong{--st-d:#AFCFA8;--st-dd:#3F6E36}
+.st-kaixuan{--st-d:#A6C6EE;--st-dd:#2B66B8}
+button:not(.card){box-shadow:0 3px 0 #D9CFC2;transition:transform .1s,box-shadow .1s}
+button:not(.card):active{transform:translateY(3px);box-shadow:0 0 0 #D9CFC2}
+button.primary{background:linear-gradient(180deg,#FF7A45 0%,var(--brand) 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 #B83D10}
+button.primary:active{box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 0 0 #B83D10;transform:translateY(4px)}
+.actWrap select{box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 4px 0 rgba(0,0,0,.22)}
+.badge{box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 4px 0 #B83D10}
+@media (prefers-reduced-motion:reduce){.card,.card:hover,.card:active,button:active{transform:none}}
 </style>
 </head>
 <body>
