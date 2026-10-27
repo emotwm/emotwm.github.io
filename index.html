@@ -119,6 +119,28 @@ button.primary:active{box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 0 0 #B83D1
 .actWrap select{box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 4px 0 rgba(0,0,0,.22)}
 .badge{box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 4px 0 #B83D10}
 @media (prefers-reduced-motion:reduce){.card,.card:hover,.card:active,button:active{transform:none}}
+/* ══ 滑過／按下會變色 ══ */
+.card{transition:transform .12s,box-shadow .12s,background-color .15s,border-color .15s}
+.card:hover{background:#FFF1E4;border-color:#FFC7A3}
+.card:active{background:#FFE0C7;border-color:var(--brand)}
+.card:hover .arrow{background:linear-gradient(180deg,#F0602A 0%,#C94414 100%)}
+.card:active .arrow{background:#B83D10}
+#homeGrid .card:hover{background:var(--st-h);border-color:var(--st-c)}
+#homeGrid .card:active{background:var(--st-a);border-color:var(--st-dd)}
+#homeGrid .card:hover .arrow,#homeGrid .card:active .arrow{background:var(--st-dd)}
+.st-dingshan{--st-h:#FFE6D6;--st-a:#FDCDAF}
+.st-yangming{--st-h:#FDF0C8;--st-a:#F8DE95}
+.st-houchang{--st-h:#FFE0D9;--st-a:#FCC1B4}
+.st-renxiong{--st-h:#E3F1E0;--st-a:#C6E1C0}
+.st-kaixuan{--st-h:#DDEBFC;--st-a:#BBD6F7}
+#homeGrid .card .shop{mix-blend-mode:multiply}   /* 店面圖跟著卡片底色一起變 */
+button:not(.card){transition:transform .1s,box-shadow .1s,background-color .15s,border-color .15s,color .15s}
+button:not(.card):not(.primary):hover{background:#FFF1E4;border-color:#F5B98C;color:var(--brand)}
+button:not(.card):not(.primary):active{background:#FFE0C7}
+button.primary:hover{background:linear-gradient(180deg,#F0602A 0%,#C94414 100%)}
+button.primary:active{background:#B83D10}
+.actWrap select:hover{filter:brightness(1.08)}
+.actWrap select:active{filter:brightness(.9)}
 </style>
 </head>
 <body>
@@ -338,5 +360,6 @@ $('uid').addEventListener('keydown',e=>{if(e.key==='Enter')$('pw').focus();});
   el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
 });})();
 </script>
+<script>document.addEventListener('touchstart',function(){}, {passive:true});</script>
 </body>
 </html>
