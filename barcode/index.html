@@ -363,6 +363,8 @@ footer .cnt strong{color:var(--brand)}
 .terms li b{color:var(--ink)}
 .terms .agree{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer}
 .terms .agree input{width:18px;height:18px;margin:0}
+/* 表格標題列不要「黏在頂端」：表格本身有 overflow:hidden（做圓角），黏住會把標題列往下推、疊在第一筆資料上 */
+th{position:static}
 </style>
 </head>
 <body>
