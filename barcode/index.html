@@ -85,8 +85,6 @@ td.qty input{width:56px;font-family:var(--mono);font-size:12px;padding:5px 6px;t
 #store .rowitem{padding:8px 12px;margin-bottom:6px}
 #store .btnrow{margin:0 0 8px!important;gap:6px}
 input.rpInput{font-size:15px!important;padding:9px 12px!important}
-#urls table{width:auto}
-#urls td,#urls th{padding-right:28px}
 .btnlink{display:inline-block;border:1px solid var(--ink);padding:4px 10px;font-size:11px;font-weight:500;color:var(--ink);text-decoration:none;border-radius:2px}
 .hqTitle{font-size:21px;margin:0 0 12px;font-weight:800}
 .card{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;margin-bottom:10px}
@@ -418,7 +416,6 @@ footer .cnt strong{color:var(--brand)}
     <button data-pane="pub"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>發布紀錄</button>
     <button data-pane="plog"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>列印紀錄</button>
     <button data-pane="staff"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>人員管理</button>
-    <button data-pane="urls"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>門市網址</button>
     <button data-pane="rules"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>縮名規則</button>
   </nav>
 
@@ -498,12 +495,6 @@ footer .cnt strong{color:var(--brand)}
     <div id="staffList"></div>
   </div>
 
-  <!-- ── 門市網址 ── -->
-  <div class="hqpane" data-pane="urls" hidden>
-    <h2 class="hqTitle">門市網址</h2>
-    <p class="hint" style="margin:0 0 10px">請各店把自己的網址存成書籤。</p>
-    <div id="urls"></div>
-  </div>
 
   <!-- ── 縮名規則 ── -->
   <div class="hqpane" data-pane="rules" hidden>
@@ -1279,6 +1270,7 @@ function initHQ(){
   $('brands').value=RULES.brands; $('subs').value=RULES.subs;
   if(ALL.length){renderTabs();renderPreview();} renderSummary();
   let pn='work';try{pn=sessionStorage.getItem('bc:pane')||'work';}catch(e){}
+  if(!document.querySelector('#hqnav button[data-pane="'+pn+'"]'))pn='work';   /* 記住的分頁已不存在（例如舊的門市網址）就回日常作業 */
   showPane(pn);
 }
 
@@ -1470,17 +1462,6 @@ $('publishAll').onclick=async()=>{
   finally{lockPublish(false);updatePublishState();}
 };
 
-function renderUrls(){
-  const base=location.href.split('?')[0].split('#')[0];
-  $('urls').innerHTML='<table><thead><tr><th>門市</th><th>固定網址</th><th></th></tr></thead><tbody>'
-   +Object.keys(STORE_KEYS).map(k=>{const u=base+'?s='+k;return '<tr><td><b>'+esc(STORE_KEYS[k])+'</b></td>'
-     +'<td class="c" style="word-break:break-all">'+esc(u)+'</td>'
-     +'<td><button class="mini" data-copy="'+esc(u)+'">複製</button> <a class="mini btnlink" href="'+esc(u)+'" target="_blank" rel="noopener">開啟</a></td></tr>';}).join('')
-   +'</tbody></table><p class="hint">'+(CLOUD?'門市打開網址後，用自己的店號帳號登入即可。':'目前是本機測試版，網址只在這台電腦有效。')+'</p>';
-  $('urls').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
-    try{await navigator.clipboard.writeText(b.dataset.copy);toast('已複製網址');}catch(e){toast('無法自動複製，請手動反白複製');}
-  });
-}
 /* 錯誤畫面：使用者看得懂的說明＋重試，技術細節收在下面 */
 function errBox(title,hint,e,retry){
   return '<div class="errbox"><b>⚠ '+esc(title)+'</b>'+esc(hint)
@@ -1494,7 +1475,6 @@ function showPane(name){
   if(name==='pub')renderHistory();
   if(name==='plog')renderPrintLog();
   if(name==='staff')renderStaff();
-  if(name==='urls')renderUrls();
   try{sessionStorage.setItem('bc:pane',name);}catch(e){}
 }
 document.querySelectorAll('#hqnav button').forEach(b=>b.onclick=()=>showPane(b.dataset.pane));
