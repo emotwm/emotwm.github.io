@@ -650,7 +650,7 @@ const DEF_SUBS=[
  '保護殼 → 殼','手機殼 → 殼','保護套 → 套','行動電源 → 電源','藍牙耳機 → 耳機','藍芽耳機 → 耳機',
  '快速旅充組 → 旅充組','4G智慧兒童手錶 → 兒童錶','4G兒童手錶 → 兒童錶','智慧兒童手錶 → 兒童錶','兒童智慧手錶 → 兒童錶','兒童手錶 → 兒童錶','貓貓蟲咖波 → 咖波','(連宇) → ','鋁合金鍍釉 → ','耐衝擊軍規 → 軍規','耐衝軍規 → 軍規','USB-C 雙孔快充 → 雙C充','USB-C雙孔快充 → 雙C充','組合包 → 組','真無線耳掛式 → 耳掛式','精裝撞色 → 撞色','高仿小牛皮 → ','前扣磁吸皮套 → 磁扣皮套','Hipporizz → HPZ','Origo晶透 → 晶透','Origo → ','(自動保貼機適用款) → -機貼款','（自動保貼機適用款） → -機貼款','自動保貼機適用款 → -機貼款','極透防窺玻璃保護貼 → 極透防窺貼','（連宇） → ','康寧授權玻璃保護貼 → 康寧貼','康寧玻璃保護貼 → 康寧貼','康寧授權 → 康寧',
  '# ── 款式 ──',
- '主動式降噪款 → 降噪','超快速充電2.0 → ','不鏽鋼藍寶石 → 藍寶石','低反光低藍光 → 低反藍',
+ '主動式降噪款 → 降噪','超快速充電2.0 → ','不鏽鋼藍寶石 → 藍寶石','低反光RPF80低藍光 → 低反藍','低反光低藍光 → 低反藍','低反光 → 低反',
  '低藍光 → 低藍','抗藍光 → 抗藍','耐衝擊 → 耐衝','抗污防摔 → 抗污','邊框透殼 → 框透殼','滿版 → 滿',
  '鏡頭立架 → 鏡立','旋轉支架 → 旋轉架','磁吸支架 → 磁吸架','軍盾三防 → 軍盾'
 ].join('\n');
@@ -716,13 +716,16 @@ function watchName(name){
 }
 /* iPhone 機型縮寫：iPhone 18 Pro/17 Pro → i18P/17P；同代重複的數字省略（18P/18Pm → 18P/Pm） */
 function iphoneModels(s){
-  s=s.replace(/(?:APPLE\s+)?iPhone\s*Air(?![A-Za-z])/gi,'iAir');   /* iPhone Air → iAir */
-  if(!/iPhone\s*\d/i.test(s))return s;
-  /* 2026/10/12 定案：iPhone→i、Pro Max→Pm、Pro→P（例：iPhone 18 Pro Max/17 Pro → i18Pm/17P） */
-  s=s.replace(/(?:APPLE\s+)?iPhone\s*(?=\d)/gi,'i');
+  /* 2026/10/29 定案：iPhone 一律縮成 iP（iPhone 17 Pro Max → iP17Pm、iPhone Air → iP Air、iPhone Duo → iP Duo） */
+  s=s.replace(/(?:APPLE\s+)?iPhone\s*(?=\d)/gi,'iP');          /* 數字機型：iP17、iP16e */
+  s=s.replace(/(?:APPLE\s+)?iPhone(?![A-Za-z])\s*/gi,'iP ');     /* 英文機型名或沒寫機型：iP Air、iP Duo、iP 殼 */
+  s=s.replace(/iP\s+$/,'iP');
+  if(!/iP\d/.test(s))return s;
+  /* Pro Max→Pm、Pro→P（例：iP18 Pro Max/17 Pro → iP18Pm/17P） */
   s=s.replace(/(\d{2})\s*(Pro\s*Max|Pro|Plus|Air|mini|e)(?![A-Za-z])/g,(m,n,t)=>{
     t=t.replace(/\s+/g,''); t=t==='ProMax'?'Pm':(t==='Pro'?'P':t); return n+t;});
-  s=s.replace(/((?<![A-Za-z])i\d{2}[A-Za-z]*)((?:\s*\/\s*\d{2}[A-Za-z]*)+)/g,(m,a,rest)=>{
+  /* 同代重複的數字省略（iP18P/18Pm → iP18P/Pm） */
+  s=s.replace(/((?<![A-Za-z])iP\d{2}[A-Za-z]*)((?:\s*\/\s*\d{2}[A-Za-z]*)+)/g,(m,a,rest)=>{
     let prev=a.match(/\d{2}/)[0], out=a;
     for(const part of rest.split('/').slice(1)){
       const q=part.trim(), n=q.match(/^\d{2}/)[0], t=q.slice(2);
@@ -732,7 +735,14 @@ function iphoneModels(s){
   });
   return s;
 }
+/* 縮完還超過 36 字寬時，再依序砍次要資訊，砍到放得下就停（沒超過的商品完全不受影響） */
+const OVER_STEPS=[[/\s*RPF\d+/g,''],[/低反低藍/g,'低反藍']];
 function shorten(name){
+  let r=shortenCore(name);
+  for(const [re,rep] of OVER_STEPS){ if(width(r)<=LIMIT)break; r=r.replace(re,rep); }
+  return r;
+}
+function shortenCore(name){
   const aw=watchName(name); if(aw)return aw;
   let s=iphoneModels(String(name||''));
   s=s.replace(/\bSamsung\b/gi,'Sam');   /* Samsung → Sam（寫在程式裡，雲端舊規則也會生效） */
