@@ -1178,7 +1178,15 @@ function goHome(){VIEW='home';GATESTORE='';WANT='';ARRSEL=[];EXTRA=[];rebuildQue
 /* ══ 倚盟工具箱（首頁）：登入在那邊做，這裡只沿用 ══ */
 const HOME_URL='/';
 const HOME_LOCAL=location.protocol==='file:';   /* 直接開檔案測試時，保留原本的登入畫面 */
+/* 總部在工具箱首頁用「總部 ▾」切換成某間店時，emo:sso 會寫 actingAdmin；這裡就要照那間店的畫面顯示 */
+function actingStore(){
+  if(!AUTH.isAdmin())return '';
+  try{const r=JSON.parse(localStorage.getItem('emo:sso')||'null');
+    if(r&&r.actingAdmin&&r.storeKey&&STORE_KEYS[r.storeKey])return r.storeKey;}catch(e){}
+  return '';
+}
 function ssoSave(){
+  if(actingStore())return;   /* 代看門市時不要覆蓋首頁寫的那筆 */
   try{localStorage.setItem('emo:sso',JSON.stringify({
     role:AUTH.isAdmin()?'admin':'store',
     store:AUTH.isAdmin()?'':(STORE_KEYS[AUTH.store]||''),
@@ -1200,7 +1208,8 @@ if(HOME_LOCAL){const msg=()=>toast('這是直接開檔案，跳轉沒有作用�
 $('hqLink').onclick=e=>{e.preventDefault();GATESTORE='';VIEW='gate';applyRole();};
 $('gateBack').onclick=e=>{e.preventDefault();goHome();};
 function applyRole(){
-  const admin=AUTH.isAdmin();
+  const ACTK=actingStore();
+  const admin=AUTH.isAdmin()&&!ACTK;
   const logged=!!AUTH.role;
   const sections=on=>{for(const id of ['home','gate','hq','store'])$(id).hidden=id!==on;};
   $('pwBtn').hidden=!(logged&&admin&&CLOUD);
@@ -1210,9 +1219,9 @@ function applyRole(){
     $('roleBadge').textContent='總部';$('roleBadge').className='badge';
     sections('hq');initHQ();return;
   }
-  if(AUTH.role==='store'){
+  if(AUTH.role==='store'||ACTK){
     ROLE='store';
-    const k=AUTH.store||'';
+    const k=ACTK||AUTH.store||'';
     MYSTORE=STORE_KEYS[k]||'';
     if(WANT&&WANT!==k){toast('這個帳號屬於 '+(STORE_KEYS[k]||'其他門市')+'，已自動切換');}
     $('logoutBtn').hidden=true;$('tbWrap').hidden=false;$('hdrBack').hidden=false;$('tbInv').lastChild.textContent='進貨單上傳';ssoSave();
