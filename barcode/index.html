@@ -1645,14 +1645,34 @@ async function renderHistory(){
   let b=[];
   try{b=await DB.batches();}catch(e){$('history').innerHTML=errBox('暫時無法讀取發布紀錄','請確認網路連線，或稍後再試。',e,'renderHistory');return;}
   if(!b.length){$('history').innerHTML='<div class="empty">還沒有發布紀錄。</div>';return;}
-  const rows=b.slice(0,30);
-  $('history').innerHTML='<table><thead><tr><th>時間</th><th>店點</th><th>單號</th><th>筆數</th><th style="width:170px"></th></tr></thead><tbody>'
-   +rows.map((x,k)=>'<tr><td class="c">'+new Date(x.published_at).toLocaleString('zh-TW')+'</td>'
-     +'<td>'+esc(x.store)+'</td><td class="c">'+esc(x.docno)+'</td><td class="c">'+x.items.length+'</td>'
-     +'<td style="white-space:nowrap"><button class="mini primary" data-hpr="'+k+'">🖨 列印</button> '
-     +'<button class="mini" data-rmb="'+esc(x.id)+'" data-nm="'+esc(x.store+' '+x.docno)+'">刪除</button></td></tr>'
-     +'<tr class="hdet" data-k="'+k+'" hidden><td colspan="5" style="background:#FFF7F0"></td></tr>').join('')
+  const rows=b.slice(0,200);
+  /* 同一天、同一間店的發貨單合成一列；點開才看到各張單號 */
+  const dayOf=t=>new Date(t).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});
+  const today=dayOf(Date.now());
+  const sOrder=Object.values(STORE_KEYS);
+  const groups=[];const gmap={};
+  rows.forEach((x,k)=>{const d=dayOf(x.published_at),key=d+'|'+x.store;
+    let g=gmap[key];if(!g){g=gmap[key]={d,store:x.store,ks:[],n:0,t:new Date(x.published_at).getTime()};groups.push(g);}
+    g.ks.push(k);g.n+=x.items.length;g.t=Math.max(g.t,new Date(x.published_at).getTime());});
+  groups.sort((a,b)=>(a.d===b.d?(sOrder.indexOf(a.store)-sOrder.indexOf(b.store)):(b.t-a.t)));
+  const hhmm=t=>new Date(t).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  $('history').innerHTML='<table><thead><tr><th>日期</th><th>店點</th><th>發貨單</th><th>筆數</th><th style="width:170px"></th></tr></thead><tbody>'
+   +groups.map((g,gi)=>{const open=g.d===today;
+     return '<tr class="ghead" data-g="'+gi+'" style="cursor:pointer;background:#FFF7F0"><td class="c"><b>'+esc(g.d)+'</b></td>'
+     +'<td><b>'+esc(g.store)+'</b></td><td>'+g.ks.length+' 張單</td><td class="c">'+g.n+'</td>'
+     +'<td style="white-space:nowrap"><button class="mini gtog" data-g="'+gi+'">'+(open?'收合 ▴':'展開 ▾')+'</button></td></tr>'
+     +g.ks.map(k=>{const x=rows[k];return '<tr class="gch" data-g="'+gi+'"'+(open?'':' hidden')+'><td class="c" style="padding-left:24px;color:#6E6A62">'+hhmm(x.published_at)+'</td>'
+       +'<td></td><td class="c">'+esc(x.docno)+'</td><td class="c">'+x.items.length+'</td>'
+       +'<td style="white-space:nowrap"><button class="mini primary" data-hpr="'+k+'">🖨 列印</button> '
+       +'<button class="mini" data-rmb="'+esc(x.id)+'" data-nm="'+esc(x.store+' '+x.docno)+'">刪除</button></td></tr>'
+       +'<tr class="hdet" data-k="'+k+'" hidden><td colspan="5" style="background:#FFF7F0"></td></tr>';}).join('');}).join('')
    +'</tbody></table>';
+  const togg=gi=>{const kids=[...$('history').querySelectorAll('.gch[data-g="'+gi+'"]')];
+    const show=kids.length&&kids[0].hidden;
+    kids.forEach(r=>r.hidden=!show);
+    if(!show)$('history').querySelectorAll('.hdet').forEach(t=>{if(kids.some(r=>r.nextElementSibling===t))t.hidden=true;});
+    $('history').querySelector('.gtog[data-g="'+gi+'"]').textContent=show?'收合 ▴':'展開 ▾';};
+  $('history').querySelectorAll('.ghead').forEach(tr=>tr.onclick=()=>togg(+tr.dataset.g));
   /* 總部補印以前發布的單：展開→勾選→列印（總部列印不用密碼、不記錄） */
   $('history').querySelectorAll('[data-hpr]').forEach(btn=>btn.onclick=()=>{
     const k=+btn.dataset.hpr,x=rows[k],tr=$('history').querySelector('.hdet[data-k="'+k+'"]'),td=tr.firstElementChild;
