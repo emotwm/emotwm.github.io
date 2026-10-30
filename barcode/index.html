@@ -726,7 +726,7 @@ function iphoneModels(s){
   return s;
 }
 /* 縮完還超過 36 字寬時，再依序砍次要資訊，砍到放得下就停（沒超過的商品完全不受影響） */
-const OVER_STEPS=[[/\s*RPF\d+/g,''],[/低反低藍/g,'低反藍']];
+const OVER_STEPS=[[/\s*RPF\d+/g,''],[/低反低藍/g,'低反藍'],[/UNIQ Combat Maglick/g,'UNIQ'],[/-黑色\(/g,'-黑(']];
 function shorten(name){
   let r=shortenCore(name);
   for(const [re,rep] of OVER_STEPS){ if(width(r)<=LIMIT)break; r=r.replace(re,rep); }
@@ -1829,8 +1829,12 @@ async function doSearch(){
   const hit=[];
   if(!HIST.length){
     let bs=[];try{bs=await DB.batches(MYSTORE);}catch(e){}
-    for(const b of bs)for(const it of b.items)
-      HIST.push(Object.assign({},it,{docno:b.docno,store:b.store,src:'到貨'}));
+    for(const b of bs)for(const it of b.items){
+      /* 以前發布的名稱可能是舊規則縮的：用現行規則重縮，比較短才換掉 */
+      let ln=it.label_name;
+      try{const nn=guardVendor(it.original_name,shorten(it.original_name));if(nn&&width(nn)<width(ln))ln=nn;}catch(e){}
+      HIST.push(Object.assign({},it,{label_name:ln,docno:b.docno,store:b.store,src:'到貨'}));
+    }
   }
   for(const it of HIST){
     const hay=(it.product_code+' '+barcodeOf(it)+' '+it.label_name+' '+it.original_name).toLowerCase();
