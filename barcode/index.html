@@ -416,6 +416,7 @@ footer .cnt strong{color:var(--brand)}
     <button data-pane="pub"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>發布紀錄</button>
     <button data-pane="plog"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>列印紀錄</button>
     <button data-pane="staff"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>人員管理</button>
+    <button data-pane="catalog"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>補印清單</button>
     <button data-pane="rules"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>縮名規則</button>
   </nav>
 
@@ -497,6 +498,33 @@ footer .cnt strong{color:var(--brand)}
 
 
   <!-- ── 縮名規則 ── -->
+  <!-- ── 補印清單管理 ── -->
+  <div class="hqpane" data-pane="catalog" hidden>
+    <h2 class="hqTitle">補印清單管理</h2>
+    <p class="hint" style="margin:0 0 10px">這裡管理「補印搜尋」找得到的商品，<b>全部門市共用</b>。新增、改名、刪除、更新庫存都存在雲端，門市重新整理就看到。</p>
+    <div class="card">
+      <h3 class="cardTitle" style="margin:0 0 8px">➕ 新增商品</h3>
+      <div style="display:grid;gap:8px">
+        <label style="font-size:13px">條碼／商品編號<input type="text" id="maCode" class="rpInput" placeholder="例如 0170502M0JL" autocomplete="off" style="margin-top:4px"></label>
+        <label style="font-size:13px">商品名稱（原名即可，標籤會自動縮名）<input type="text" id="maName" class="rpInput" placeholder="例如 iPhone 18 Pro 玻璃保護貼(廣)" autocomplete="off" style="margin-top:4px"></label>
+        <p class="hint" id="maInfo" style="margin:0"></p>
+        <div><button class="mini primary" id="maAdd">存進補印清單</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="cardTitle" style="margin:0 0 8px">📥 更新庫存（把大禾庫存表累積進清單）</h3>
+      <p class="hint" style="margin:0 0 6px">選大禾匯出的庫存 .xls。新商品會加進清單、名稱有變會更新，<b>舊的不會被刪掉</b>。SIM 卡、續約、儲值等不用標籤的類別會自動略過。</p>
+      <input type="file" id="invFile" accept=".xls,.xlsx" style="font-size:13px">
+      <p class="hint" id="invInfo" style="margin:6px 0"></p>
+      <div><button class="mini primary" id="invSave" hidden>確認存進補印清單</button></div>
+    </div>
+    <div class="card">
+      <h3 class="cardTitle" style="margin:0 0 8px">📋 目前清單 <span class="hint" id="cmCount" style="font-weight:400"></span></h3>
+      <input type="text" id="cmQ" class="rpInput" placeholder="🔍 打型號、編號或品名搜尋（最多顯示 100 筆）" autocomplete="off">
+      <div id="cmList" style="margin-top:8px"></div>
+    </div>
+  </div>
+
   <div class="hqpane" data-pane="rules" hidden>
     <h2 class="hqTitle">縮名規則</h2>
     <div class="grid">
@@ -533,23 +561,6 @@ footer .cnt strong{color:var(--brand)}
       </div>
       <p class="hint" style="margin:0 0 8px">標籤<b>掉了、破了、貼錯了</b>要重貼：打型號或品名 → 填張數 → 按<b>「補印」</b>。手機因為每台 IMEI 不同，請從「📅 以前的到貨」補印。</p>
       <div id="extras"></div>
-      <details id="manAdd" class="card" style="margin:0 0 10px;padding:10px 14px" hidden>
-        <summary style="cursor:pointer;font-weight:700">➕ 找不到？手動新增補印條碼（總部專用）</summary>
-        <div style="display:grid;gap:8px;margin-top:10px">
-          <label style="font-size:13px">條碼／商品編號<input type="text" id="maCode" class="rpInput" placeholder="例如 0170502M0JL 或 IMEI／序號" autocomplete="off" style="margin-top:4px"></label>
-          <label style="font-size:13px">商品名稱（會自動縮名，可再手動改）<input type="text" id="maName" class="rpInput" placeholder="例如 iPhone 18 Pro 玻璃保護貼(廣)" autocomplete="off" style="margin-top:4px"></label>
-          <p class="hint" id="maInfo" style="margin:0"></p>
-          <label style="font-size:13px">張數 <input type="text" id="maQty" value="1" style="width:70px"></label>
-          <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="maSave" checked> 同時永久存進商品清單（以後搜尋就找得到；序號／IMEI 不會存）</label>
-          <div><button class="mini primary" id="maAdd">加入補印清單</button></div>
-          <hr style="border:0;border-top:1px solid #e8dcd0;margin:6px 0">
-          <b style="font-size:13px">📥 更新庫存（把大禾庫存表累積進商品清單）</b>
-          <p class="hint" style="margin:0">選大禾匯出的庫存 .xls。新商品會加進清單、名稱有變會更新，<b>舊的不會被刪掉</b>。SIM 卡、續約、儲值等不用標籤的類別會自動略過。</p>
-          <input type="file" id="invFile" accept=".xls,.xlsx" style="font-size:13px">
-          <p class="hint" id="invInfo" style="margin:0"></p>
-          <div><button class="mini primary" id="invSave" hidden>確認存進商品清單</button></div>
-        </div>
-      </details>
       <input type="text" id="q" class="rpInput" placeholder="🔍 打型號或品名搜尋，例如：A57、玻璃貼、0170502" autocomplete="off">
       <p class="hint" id="qinfo"></p>
       <div id="qres"></div>
@@ -865,7 +876,7 @@ const CloudDB={
   async loadCatExtra(){
     const out=[];
     for(let from=0;;from+=1000){
-      const {data,error}=await this.sb.from('catalog_extra').select('sku,name,cat').order('sku').range(from,from+999);
+      const {data,error}=await this.sb.from('catalog_extra').select('sku,name,cat,source').order('sku').range(from,from+999);
       if(error)throw error;out.push(...(data||[]));if(!data||data.length<1000)break;}
     return out;},
   async saveCatExtra(rows){
@@ -960,7 +971,7 @@ async function mergeCatExtra(){
     const ex=await DB.loadCatExtra();
     if(!ex||!ex.length)return;
     const m=new Map(CAT.map(c=>[c.sku,c]));
-    for(const x of ex)if(x.sku)m.set(x.sku,{sku:x.sku,name:x.name||'',cat:x.cat||''});
+    for(const x of ex){if(!x.sku)continue;if(x.source==='已刪除')m.delete(x.sku);else m.set(x.sku,{sku:x.sku,name:x.name||'',cat:x.cat||'',src:x.source||''});}
     CAT=[...m.values()];
   }catch(e){console.warn('catExtra',e.message);}
 }
@@ -1526,6 +1537,7 @@ function showPane(name){
   if(name==='pub')renderHistory();
   if(name==='plog')renderPrintLog();
   if(name==='staff')renderStaff();
+  if(name==='catalog')renderCatMgr();
   try{sessionStorage.setItem('bc:pane',name);}catch(e){}
 }
 document.querySelectorAll('#hqnav button').forEach(b=>b.onclick=()=>showPane(b.dataset.pane));
@@ -1913,21 +1925,57 @@ async function doSearch(){
 }
 $('q').addEventListener('input',doSearch);
 
-/* ── 手動新增補印條碼（只有總部身分看得到）── */
-function showManAdd(){
-  let hq=false;
-  try{hq=(AUTH&&AUTH.role==='admin')||!!actingStore();}catch(e){}
-  $('manAdd').hidden=!hq;
-}
-let MA_AUTO='';
+/* ══════════ 補印清單管理（總部後台） ══════════ */
 function maShorten(){
   const raw=$('maName').value.trim();
   const lab=raw?guardVendor(raw,shorten(raw)):'';
-  MA_AUTO=lab;
   const w=width(lab);
-  $('maInfo').innerHTML=raw?('標籤上會印：<b>'+esc(lab)+'</b>　'+(w>LIMIT?'<span class="long">名稱過長（'+w+'/'+LIMIT+'）請把名稱再改短</span>':'（'+w+'/'+LIMIT+'）')):'';
+  $('maInfo').innerHTML=raw?('標籤上會印：<b>'+esc(lab)+'</b>　'+(w>LIMIT?'<span class="long">名稱過長（'+w+'/'+LIMIT+'）縮名後仍超過，補印時會標「名稱過長」</span>':'（'+w+'/'+LIMIT+'）')):'';
   return lab;
 }
+$('maName').addEventListener('input',maShorten);
+function upsertLocalCat(row){const i=CAT.findIndex(c=>c.sku===row.sku);
+  if(row.source==='已刪除'){if(i>=0)CAT.splice(i,1);}else{const r={sku:row.sku,name:row.name,cat:row.cat,src:row.source};if(i>=0)CAT[i]=r;else CAT.push(r);}
+  buildNameIndex();}
+async function catSave(rows){await DB.saveCatExtra(rows);rows.forEach(upsertLocalCat);renderCatMgr();}
+$('maAdd').onclick=async()=>{
+  const code=$('maCode').value.trim().toUpperCase(),name=$('maName').value.trim();
+  if(!code){toast('請輸入條碼或商品編號');return;}
+  if(!name){toast('請輸入商品名稱');return;}
+  if(/^\d{14,16}$/.test(code)){toast('這是 IMEI／序號，每台不同，不用存進清單');return;}
+  try{await catSave([{sku:code,name,cat:'手動',source:'手動'}]);
+    toast('✅ 已存進補印清單：'+guardVendor(name,shorten(name)));
+    $('maCode').value='';$('maName').value='';$('maInfo').textContent='';
+  }catch(e){toast('存檔失敗：'+e.message);}
+};
+function renderCatMgr(){
+  if(!$('cmList'))return;
+  const q=$('cmQ').value.trim().toLowerCase(),terms=q.split(/\s+/).filter(Boolean);
+  const hit=[];let total=0;
+  for(const c of CAT){
+    const hay=(c.sku+' '+c.name).toLowerCase();
+    if(terms.every(t=>hay.includes(t))){total++;if(hit.length<100)hit.push(c);}
+  }
+  $('cmCount').textContent='（共 '+CAT.length+' 筆'+(q?'，符合 '+total+' 筆':'')+'）';
+  if(!hit.length){$('cmList').innerHTML='<div class="empty">找不到。</div>';return;}
+  $('cmList').innerHTML=hit.map((c,i)=>{
+    const lab=guardVendor(c.name,shorten(c.name)),w=width(lab);
+    return '<div class="rowitem" style="cursor:default"><span class="nm">'+esc(lab)+(w>LIMIT?'<span class="long">名稱過長</span>':'')
+     +'<small>'+esc(c.name)+'</small><small>'+esc(c.sku)+'　<span class="tag">'+esc(c.cat||'')+(c.src?'・'+esc(c.src):'')+'</span></small></span>'
+     +'<button class="mini" data-cmedit="'+i+'">改名</button> <button class="mini" data-cmdel="'+i+'">刪除</button></div>';
+  }).join('')+(total>hit.length?'<p class="hint">結果過多，只顯示前 100 筆，請再多打幾個字縮小範圍。</p>':'');
+  $('cmList').querySelectorAll('[data-cmedit]').forEach(b=>b.onclick=async()=>{
+    const c=hit[+b.dataset.cmedit];const n=prompt('改這個商品的原名（標籤會再自動縮名）：\n'+c.sku,c.name);
+    if(n==null||!n.trim()||n.trim()===c.name)return;
+    try{await catSave([{sku:c.sku,name:n.trim(),cat:c.cat||'手動',source:'手動'}]);toast('已更新');}catch(e){toast('存檔失敗：'+e.message);}
+  });
+  $('cmList').querySelectorAll('[data-cmdel]').forEach(b=>b.onclick=async()=>{
+    const c=hit[+b.dataset.cmdel];
+    if(!confirm('從補印清單刪除？\n\n'+c.name+'\n'+c.sku+'\n\n（門市就搜不到了；以後再更新庫存若還有這個商品，會重新加回來）'))return;
+    try{await catSave([{sku:c.sku,name:c.name,cat:c.cat||'',source:'已刪除'}]);toast('已刪除');}catch(e){toast('刪除失敗：'+e.message);}
+  });
+}
+$('cmQ').addEventListener('input',renderCatMgr);
 /* 更新庫存：只收需要貼標的類別（SIM卡、續約、儲值、寬頻…不收） */
 const INV_CATS=new Set(['行動電話類(唯一)','螢幕保護貼類','台製外殼類','台製皮套類','平板電腦(唯一)','台製電池類','手機套/水晶殼類','行動電話類','原廠電池類','贈品類','原廠皮套類','原廠旅充類','台製配件盒類','原廠傳輸線類','台製旅充類','原廠外殼類','展示機','其他','台製傳輸線類','原廠耳機類','原廠藍芽耳機類','原廠座充類','台製座充類','原廠配件盒類','台製耳機類','記憶卡類','台製藍芽耳機類','隨身碟類','台製車充類','原廠揚聲器類','穿戴裝置類']);
 let INV_ROWS=[];
@@ -1962,35 +2010,14 @@ $('invSave').onclick=async()=>{
   if(!INV_ROWS.length)return;
   $('invSave').disabled=true;
   try{
-    await DB.saveCatExtra(INV_ROWS);
-    const m=new Map(CAT.map(c=>[c.sku,c]));
-    for(const x of INV_ROWS)m.set(x.sku,{sku:x.sku,name:x.name,cat:x.cat});
-    CAT=[...m.values()];buildNameIndex();
+    await catSave(INV_ROWS);
     $('invInfo').textContent='✅ 已永久存進商品清單，目前清單共 '+CAT.length+' 筆。';
     $('invSave').hidden=true;INV_ROWS=[];$('invFile').value='';
     toast('商品清單已更新');
   }catch(err){$('invInfo').textContent='❌ 存檔失敗：'+err.message;}
   finally{$('invSave').disabled=false;}
 };
-$('maName').addEventListener('input',maShorten);
-$('maAdd').onclick=()=>{
-  const code=$('maCode').value.trim().toUpperCase();
-  const name=$('maName').value.trim();
-  const q=Math.max(1,parseInt($('maQty').value,10)||1);
-  if(!code){toast('請輸入條碼或商品編號');return;}
-  if(!name){toast('請輸入商品名稱');return;}
-  const lab=maShorten();
-  if(width(lab)>LIMIT){toast('名稱超過 '+LIMIT+' 字寬，請先改短');return;}
-  const k=/^\d{14,16}$/.test(code)?{product_code:'',barcode:code,imei:code,serial:''}:{product_code:code,barcode:code,imei:'',serial:''};
-  queueAdd(Object.assign({original_name:name,label_name:lab,cost_code:'',qty:1,unit:'',docno:'',store:MYSTORE,src:'手動'},k),q);
-  let msg='已加入補印清單：'+lab;
-  if($('maSave').checked&&!k.imei){
-    DB.saveCatExtra([{sku:code,name,cat:'手動',source:'手動'}])
-      .then(()=>{const i=CAT.findIndex(c=>c.sku===code);const row={sku:code,name,cat:'手動'};if(i>=0)CAT[i]=row;else CAT.push(row);buildNameIndex();toast(msg+'（已存進商品清單）');})
-      .catch(e=>toast('補印已加入，但存進商品清單失敗：'+e.message));
-  }else toast(msg);
-  $('maCode').value='';$('maName').value='';$('maQty').value='1';$('maInfo').textContent='';
-};
+
 
 /* ══════════════════ 啟動 ══════════════════ */
 (async function(){
@@ -2002,7 +2029,7 @@ $('maAdd').onclick=()=>{
   await loadCatalog(); buildNameIndex();
   if(AUTH.role)VIEW='app';
   else if(WANT&&HOME_LOCAL)goStore(WANT);
-  applyRole(); renderFooter(); showManAdd();
+  applyRole(); renderFooter();
 })();
 </script>
 </body>
