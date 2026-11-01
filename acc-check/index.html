@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>配件盤點核對｜倚盟電訊</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#EDF0EC; --card:#fff; --ink:#17242A; --muted:#5B6A6E; --rule:#C6CEC8;
@@ -125,64 +123,12 @@
     .g>summary::before{display:none}
     .g .inner{display:block !important}
   }
-
-  /* ══════════ 工具箱風格（與首頁一致）══════════
-     只改外觀：奶油底、圓角、暖陰影、標題襯線體、主按鈕橘色。
-     比對結果的分類顏色（相符綠／多紅／少藍／紫／橘）刻意不動。 */
-  :root{--paper:#FFF8F1;--ink:#1C1B19;--muted:#6E6A62;--rule:#E6D9CB;--brand:#E8541E;--peach:#FFE9D6;
-    --serif:"Noto Serif TC","Noto Serif CJK TC","Noto Sans TC",serif}
-  body{min-height:100vh;background-attachment:fixed;
-    background-image:radial-gradient(60% 40% at 8% 100%,#FFD9BC 0,rgba(255,217,188,0) 70%),radial-gradient(55% 45% at 95% 100%,#FFD2AD 0,rgba(255,210,173,0) 70%),radial-gradient(40% 30% at 85% 12%,#FFE4CC 0,rgba(255,228,204,0) 70%),radial-gradient(35% 28% at 12% 20%,#FFEBDA 0,rgba(255,235,218,0) 70%)}
-  .brand{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.92);border:1px solid var(--rule);
-    border-radius:18px;padding:11px 14px;margin-bottom:16px;box-shadow:0 2px 10px rgba(140,84,40,.07)}
-  .brand .logo{flex:none;display:block;height:40px;width:auto}
-  .brand .bsep{width:1px;align-self:stretch;background:var(--rule)}
-  .brand .btitle{flex:1;min-width:0}
-  .brand h1{margin:0;font-size:19px;font-family:var(--serif);font-weight:900;letter-spacing:.03em}
-  .brand .bmeta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .brand .bstore{background:var(--peach);color:#9A3A10;border-radius:6px;padding:1px 9px;font-weight:700}
-  .hubbtn{flex:none;border:1px solid var(--rule);background:#fff;color:var(--muted);border-radius:10px;padding:7px 11px;
-    font-size:13px;text-decoration:none;white-space:nowrap;box-shadow:0 3px 0 #E8D9C8}
-  .hubbtn:hover{background:#FFF1E4;color:var(--brand);border-color:#F5B98C}
-  .hubbtn:active{transform:translateY(3px);box-shadow:none}
-  @media(max-width:560px){.brand{gap:9px;padding:9px 11px}.brand .logo{height:34px}.brand h1{font-size:16px}.brand .bmeta span:not(.bstore){display:none}}
-  section,.steps,.g,.scroll{border-radius:18px}
-  section{box-shadow:0 2px 10px rgba(140,84,40,.07)}
-  .steps{box-shadow:0 2px 10px rgba(140,84,40,.07)}
-  .steps div.now{background:var(--brand)}
-  .g{overflow:hidden}
-  h2{font-family:var(--serif);font-weight:900}
-  select,input[type=text],input[type=number],input[type=date],textarea{border-radius:8px}
-  button.go{background:var(--brand);border-radius:14px;box-shadow:0 5px 0 #B83D10;transition:transform .1s,box-shadow .1s}
-  button.go:not(:disabled):hover{background:#D9491A}
-  button.go:not(:disabled):active{transform:translateY(5px);box-shadow:none}
-  button.mini{border-radius:8px}
-  .tabs{border-radius:10px;overflow:hidden}
-  .score{border-radius:14px}
-  #store:disabled{color:var(--ink);background:var(--peach);opacity:1;font-weight:700}
-  @media print{
-    body{background:#fff!important;background-image:none!important}
-    .brand{display:none}
-    section,.steps,.g,.scroll,.score{border-radius:0!important;box-shadow:none!important}
-  }
 </style>
 </head>
 <body>
-<script>
-/* ── 倚盟工具箱共用登入：從工具箱首頁進來才會有 emo:sso，沒有就回首頁。本機開檔(file://)不擋，方便測試。 */
-var SSO=null;try{SSO=JSON.parse(localStorage.getItem('emo:sso')||'null');}catch(e){}
-if((!SSO||!SSO.role)&&location.protocol!=='file:'){location.replace('/');}
-</script>
 <div class="wrap">
-  <header class="brand">
-    <a href="/" title="回倚盟工具箱"><img class="logo" alt="倚盟電訊" src="data:image/png;base64,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"></a>
-    <div class="bsep"></div>
-    <div class="btitle">
-      <h1>配件盤點核對</h1>
-      <div class="bmeta"><span class="bstore" id="bmStore"></span><span>大禾庫存 × SCMS 盤點單</span></div>
-    </div>
-    <a class="hubbtn" href="/" title="回倚盟工具箱">☰ 工具箱</a>
-  </header>
+  <p class="org">倚盟電訊</p>
+  <h1>配件盤點核對</h1>
   <p class="sub">大禾 CA08 庫存檔 × SCMS 盤點單。全部在這台電腦運算，檔案不會上傳到任何地方。</p>
 
   <div class="steps" id="steps">
@@ -303,9 +249,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <script>
 
 (function(){
-  try{ var bm=document.getElementById("bmStore"); if(bm){ bm.textContent=(SSO&&SSO.store)?(SSO.store+(SSO.actingAdmin?"（總部）":"")):(SSO&&SSO.role==="admin"?"總部":""); if(!bm.textContent) bm.style.display="none"; } }catch(e){}
-})();
-(function(){
   /* ===================================================================
      公開網頁版：這裡務必保持空白。
      金鑰由各店在「進階設定」輸入一次並勾「記住」，只存在該台電腦的瀏覽器裡。
@@ -322,26 +265,38 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   function qty(v){ if(v===null||v===undefined) return 0; var n=parseFloat(String(v).replace(/,/g,"").trim()); return isNaN(n)?0:n; }
   function stripA(s){ return String(s).replace(/^\s*\(A\)\s*-?\s*/i,"").trim(); }
 
-  function norm(s){
-    return String(s)
-      .replace(/\(台\)/g,"").replace(/^\s*\(A\)\s*-?\s*/i,"")
+  // ---- 品名比對 ----
+  // spaced(): 保留空白的正規化，給「機型判斷」用。
+  //   若先拿掉空白，「iPhone 17 9H」會黏成「iphone179h」，機型號碼被讀成 179。
+  function spaced(s){
+    return String(s).replace(/\(台\)/g," ").replace(/^\s*\(A\)\s*-?\s*/i,"")
       .replace(/[\uFF01-\uFF5E]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0)})
       .toLowerCase()
-      .replace(/[\s\-_/,.、（）()\[\]【】+]/g,"");
+      .replace(/[,，、（）()\[\]【】\/\-_+.]/g," ")
+      .replace(/\s+/g," ").trim();
   }
+  function norm(s){ return spaced(s).replace(/\s/g,""); }
+
   function bigrams(s){ var a=[]; for(var i=0;i<s.length-1;i++) a.push(s.substr(i,2)); return a.length?a:[s]; }
-  function dice(a,b){
-    var A=bigrams(norm(a)), B=bigrams(norm(b));
-    var m={},hit=0;
+  // 相鄰兩字的相似度：看得出順序
+  function dice(x,y){
+    var A=bigrams(x), B=bigrams(y), m={}, hit=0;
     A.forEach(function(g){ m[g]=(m[g]||0)+1 });
     B.forEach(function(g){ if(m[g]>0){ m[g]--; hit++; } });
     return (2*hit)/(A.length+B.length);
   }
-  // 機型不同就算字面很像也不能配：17 Pro 與 17 Pro Max、16 與 17 都要擋掉
-  // 品牌不同、顏色不同，就算字面像也不是同一項
+  // 只看用到哪些字、不管順序：大禾常把機型搬到最前面，這時只有它救得回來
+  function bagSim(x,y){
+    var m={},hit=0,i;
+    for(i=0;i<x.length;i++) m[x[i]]=(m[x[i]]||0)+1;
+    for(i=0;i<y.length;i++) if(m[y[i]]>0){ m[y[i]]--; hit++; }
+    return (2*hit)/(x.length+y.length);
+  }
+
   var BRANDS=["puregear","hoda","imos","skinarma","switcheasy","uniq","apbs","anker","gigastone",
     "onpro","aspor","artmo","lapo","pqi","mycell","aiwa","ebooks","purepower","torras","spigen",
-    "moshi","nillkin","redmi","rhinoshield","telephant","devilcase","bodyguardz","犀牛盾","紅米"];
+    "moshi","nillkin","redmi","rhinoshield","telephant","devilcase","bodyguardz","maxia","belkin",
+    "intopic","energea","犀牛盾","紅米"];
   function colorOf(s){
     var t=String(s).replace(/[（(][^)）]*[)）]\s*$/,"").trim();
     var i=t.lastIndexOf("-");
@@ -350,23 +305,37 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     return (c.length<=6 && /[\u4e00-\u9fff]/.test(c)) ? c : "";
   }
   function brandsOf(n){ return BRANDS.filter(function(b){ return n.indexOf(b)>=0 }) }
+  // 從「有空白」的字串抓機型號碼，才不會把 17 跟 9h 黏成 179
+  function numsOf(sp){
+    var out=[], m=sp.match(/(^|[^a-z0-9])(\d{2,3}e?)(?![0-9])/g)||[];
+    m.forEach(function(t){ var v=t.replace(/[^0-9e]/g,""); if(v&&out.indexOf(v)<0) out.push(v) });
+    return out;
+  }
+  var RE_PM=/\bpro\s*max\b/, RE_PRO=/\bpro\b/, RE_AIR=/\bair\b/,
+      RE_PLUS=/\bplus\b/, RE_MINI=/\bmini\b/;
 
-  function score(a,b){
-    var s=dice(a,b), x=norm(a), y=norm(b);
-    var pmx=/promax/.test(x), pmy=/promax/.test(y);
-    if(pmx!==pmy) s*=0.5;
-    else{
-      var px=/pro/.test(x), py=/pro/.test(y);
-      if(px!==py) s*=0.6;
+  function score(a,b,aColor){
+    var xa=spaced(a), xb=spaced(b);
+    var x=xa.replace(/\s/g,""), y=xb.replace(/\s/g,"");
+    var s=Math.max(dice(x,y), 0.95*bagSim(x,y));
+    var na=numsOf(xa), nb=numsOf(xb);
+    // 品名列了一串機型（例如 17e/16e/14/13 Pro/13）時，Pro 類判斷不可靠，跳過
+    var multi = na.length>1 || nb.length>1;
+    if(!multi){
+      var pma=RE_PM.test(xa), pmb=RE_PM.test(xb);
+      if(pma!==pmb) s*=0.5;
+      else if(RE_PRO.test(xa)!==RE_PRO.test(xb)) s*=0.6;
+      if(RE_AIR.test(xa)!==RE_AIR.test(xb)) s*=0.45;   // iPhone Air 是獨立機型
     }
-    if(/plus/.test(x)!==/plus/.test(y)) s*=0.6;
-    if(/mini/.test(x)!==/mini/.test(y)) s*=0.6;
-    var nx=x.match(/\d{2,3}/g)||[], ny=y.match(/\d{2,3}/g)||[];
-    if(nx.length&&ny.length){
-      var hit=nx.some(function(n){ return ny.indexOf(n)>=0 });
+    if(RE_PLUS.test(xa)!==RE_PLUS.test(xb)) s*=0.6;
+    if(RE_MINI.test(xa)!==RE_MINI.test(xb)) s*=0.6;
+    if(na.length&&nb.length){
+      var hit=na.some(function(n){ return nb.indexOf(n)>=0 });
       if(!hit) s*=0.5;
     }
+    // 顏色：品名裡有就用品名的；沒有才拿 SCMS 的顏色欄來補（「不分色」不算顏色）
     var ca=colorOf(a), cb=colorOf(b);
+    if(!ca && aColor && aColor!=="不分色") ca=String(aColor).trim();
     if(ca&&cb&&ca.indexOf(cb)<0&&cb.indexOf(ca)<0) s*=0.45;
     var ba=brandsOf(x), bb=brandsOf(y);
     if(ba.length&&bb.length&&!ba.some(function(z){ return bb.indexOf(z)>=0 })) s*=0.4;
@@ -422,11 +391,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         var sel=$("store"); sel.innerHTML='<option value="">請選擇</option>';
         stores.forEach(function(s){ var o=document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o); });
         if(stores.length===1) sel.value=stores[0];
-        /* 工具箱已經選好店了：自動選那一間；門市帳號只能核對自己的店（總部切換店點時也照那間） */
-        if(SSO&&SSO.store){
-          if(stores.indexOf(SSO.store)>=0){ sel.value=SSO.store; if(SSO.role==='store'&&!SSO.actingAdmin) sel.disabled=true; }
-          else if(SSO.role==='store'&&!SSO.actingAdmin){ fail("這份大禾檔裡沒有「"+SSO.store+"」的資料，請確認 CA08 轉出時有勾到你的店。"); }
-        }
         $("storebox").className="";
         showStore(); renderCount();
       }catch(err){ fail("檔案讀不開："+err.message+"（若是舊版 .xls 中文變亂碼，請先另存成 .xlsx）"); }
@@ -667,37 +631,47 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   $("run").addEventListener("click",function(){
     if(inputMode==="count"){ finishCount(); return; }
     var daher=build($("store").value).rows;
-    var cand=[], best={}, second={};
-    scmsItems.forEach(function(s,i){
-      daher.forEach(function(d,j){
-        var sc=score(s.name+s.color,d.name);
-        if(sc>0.25) cand.push([sc,i,j]);
-        if(best[i]===undefined||sc>best[i]){ second[i]=best[i]||0; best[i]=sc; }
-        else if(sc>(second[i]||0)) second[i]=sc;
-      });
+    // 先把所有分數算出來
+    var M=scmsItems.map(function(s){
+      return daher.map(function(d){ return score(s.name,d.name,s.color) });
     });
+    var cand=[];
+    M.forEach(function(row,i){ row.forEach(function(v,j){ if(v>0.25) cand.push([v,i,j]) }) });
     cand.sort(function(a,b){return b[0]-a[0]});
-    var usedS={},usedD={},pairs=[];
+    var usedS={},usedD={},pairs=[],lowConf={};
     cand.forEach(function(c){
-      if(c[0]<THRESH) return;
-      if(usedS[c[1]]||usedD[c[2]]) return;
-      if(c[0]-(second[c[1]]||0)<0.06) return; // 兩個候選分數太接近，交給人工確認
-      usedS[c[1]]=1; usedD[c[2]]=1; pairs.push([c[1],c[2]]);
+      var v=c[0], i=c[1], j=c[2];
+      if(v<THRESH || usedS[i] || usedD[j]) return;
+      // 互為首選（在還沒配走的範圍內）就直接採用，不受模稜兩可保護限制
+      var bj=-1,bv=-1,k;
+      for(k=0;k<daher.length;k++) if(!usedD[k]&&M[i][k]>bv){ bv=M[i][k]; bj=k }
+      var bi=-1,b2=-1;
+      for(k=0;k<scmsItems.length;k++) if(!usedS[k]&&M[k][j]>b2){ b2=M[k][j]; bi=k }
+      if(!(bj===j && bi===i)){
+        var sec=0;
+        for(k=0;k<daher.length;k++) if(k!==j&&!usedD[k]&&M[i][k]>sec) sec=M[i][k];
+        if(v-sec<0.06) return;   // 兩個候選分數太接近，寧可不配
+      }
+      usedS[i]=1; usedD[j]=1; pairs.push([i,j]);
+      if(v<0.75) lowConf[i+"_"+j]=Math.round(v*100);
     });
     var leftS=[],leftD=[];
     scmsItems.forEach(function(s,i){ if(!usedS[i]) leftS.push(i) });
     daher.forEach(function(d,j){ if(!usedD[j]) leftD.push(j) });
 
-    pendingPairs={daher:daher,pairs:pairs,leftS:leftS,leftD:leftD};
+    pendingPairs={daher:daher,pairs:pairs,leftS:leftS,leftD:leftD,lowConf:lowConf};
     finish();
   });
 
   function finish(){
     var d=pendingPairs.daher, pairs=pendingPairs.pairs;
+    var lc=pendingPairs.lowConf||{};
     var same=[],up=[],down=[],usedS={},usedD={};
     pairs.forEach(function(pr){
       var s=scmsItems[pr[0]], x=d[pr[1]];
       usedS[pr[0]]=1; usedD[pr[1]]=1;
+      var conf=lc[pr[0]+"_"+pr[1]];
+      if(conf) x={name:x.name+"　⚠配對信心 "+conf+"%，請確認品名", qty:x.qty};
       var row={s:s,d:x,diff:s.qty-x.qty};
       if(row.diff===0) same.push(row); else if(row.diff>0) up.push(row); else down.push(row);
     });
