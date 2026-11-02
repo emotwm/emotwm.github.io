@@ -695,7 +695,7 @@ tr.flash td{animation:flashRow 1.1s ease-out}
   </div>
 
   <details class="morefold">
-    <summary>其他功能　<span style="color:#9AA1AA">版本 2026-10-23</span></summary>
+    <summary>其他功能　<span style="color:#9AA1AA">版本 2026-11-02</span></summary>
     <div class="toolgrp" style="margin-top:10px">盤點設定（平常不用動）</div>
   <div class="modebar" style="display:flex;gap:6px;margin-bottom:8px;font-size:13px;align-items:center;flex-wrap:wrap">
     <span style="color:var(--muted)">盤點方式</span>
@@ -713,7 +713,7 @@ tr.flash td{animation:flashRow 1.1s ease-out}
     <button id="kind_store" onclick="setKind('store')" class="chip" style="cursor:pointer">門市自己盤</button>
     <button id="kind_hq"    onclick="setKind('hq')"    class="chip" style="cursor:pointer">總部抽查</button>
   </div>
-  <div class="modebar" style="display:flex;gap:6px;margin-bottom:8px;font-size:13px;align-items:center;flex-wrap:wrap">
+  <div class="modebar" data-feat="onlyChg" style="display:none">
     <span style="color:var(--muted)">盤多少</span>
     <button id="chg_off" onclick="setOnlyChg(false)" class="chip" style="cursor:pointer">範圍內全部</button>
     <button id="chg_on"  onclick="setOnlyChg(true)"  class="chip" style="cursor:pointer">只盤有異動的</button>
@@ -976,7 +976,11 @@ function getScope(){
    今天載入新的庫存表,數字跟基準不一樣、或是新品項,就是有異動。
    一進一出數字剛好抵銷抓不到,所以再加一條:超過 STALE_DAYS 天沒被盤到的也一律列入。 */
 const STALE_DAYS = 14;
-function onlyChg(){ return !!db.onlyChg; }
+/* ⬛ 只盤異動:暫時不開放給門市（2026-11-02）。
+   要重新開放,把下面這行改成 true,並把「盤多少」那排的 style 拿掉即可,
+   其餘程式（基準比對、跟後台撈基準、14 天保險）都原封不動留著。 */
+const FEAT_ONLYCHG = false;
+function onlyChg(){ return FEAT_ONLYCHG && !!db.onlyChg; }
 function baseOf(){ return (db.base||{})[cur] || null; }
 function dnum(s){                      /* yyyy/mm/dd → 天數,方便相減 */
   const m = String(s||'').match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);

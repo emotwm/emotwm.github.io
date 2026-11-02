@@ -93,6 +93,18 @@ tbody tr:hover{background:#F7F9FC}
 .dt td{border-bottom:1px solid #E7EAEE;padding:7px 8px}
 .notebox{border:1px solid var(--line);border-radius:9px;padding:11px 13px;background:var(--wait-bg);
          font-size:13.5px;min-height:46px;white-space:pre-wrap}
+.ktabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ktab{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;
+      padding:7px 13px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.ktab.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;
+         box-shadow:0 1px 5px rgba(232,84,30,.3)}
+.ktab .kn{font-family:var(--mono);font-size:11.5px;background:rgba(0,0,0,.07);
+          border-radius:999px;padding:1px 6px}
+.ktab.on .kn{background:rgba(255,255,255,.25)}
+.kbadge{font-size:11.5px;border-radius:999px;padding:2px 8px;white-space:nowrap;font-weight:700}
+.kbadge.daily{background:#E7EEF7;color:#2C5A8F}
+.kbadge.full{background:var(--peach);color:#9A3A10}
+.kbadge.hq{background:#EDE7F6;color:#5B3E8E}
 .rstar{color:#C9A24B;letter-spacing:2px;font-size:15px}
 tr.rtot td{font-weight:700;background:#F5F6F8}
 .signs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
@@ -182,7 +194,7 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
       <div class="bmeta">
         <span id="mMonth"></span>
         <span id="mCount"></span>
-        <span style="color:#9AA1AA">版本 2026-10-23b</span>
+        <span style="color:#9AA1AA">版本 2026-11-02</span>
       </div>
     </div>
     <a class="logout" href="/" title="回倚盟工具箱">☰ 工具箱</a>
@@ -200,14 +212,15 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
   </div>
 
   <div class="card">
-    <div style="font-size:14px;font-weight:800;margin-bottom:9px">本月盤點狀況</div>
+    <div class="ktabs" id="kindTabs"></div>
+    <div style="font-size:14px;font-weight:800;margin:4px 0 9px" id="storesTitle">本月盤點狀況</div>
     <div class="stores" id="stores"></div>
   </div>
 
   <div class="tbl">
     <table>
       <thead><tr>
-        <th>門市</th><th>盤點日</th><th>範圍</th><th>盤點人</th><th>主管</th>
+        <th>門市</th><th>分類</th><th>盤點日</th><th>範圍</th><th>盤點人</th><th>主管</th>
         <th class="c-num">完成</th><th class="c-num">差異</th><th class="c-num">淨差異金額</th>
         <th>上傳時間</th>
       </tr></thead>
@@ -306,6 +319,39 @@ function ftime(x){                       /* 10/19 10:18 */
            : String(x==null?'':x).trim();
 }
 function ts(x){ const d=dparse(x); return d ? d.getTime() : 0; }
+
+/* ── 三種盤點分類 ──
+   直接從「盤點範圍」欄判,不用改後端:
+     總部抽查｜xxx → 總部抽查
+     手機+平板     → 門市每日（有序號的設備）
+     其他(全部商品)→ 門市全盤 */
+const KINDS = [
+  {k:'all',   label:'全部'},
+  {k:'daily', label:'門市每日'},
+  {k:'full',  label:'門市全盤'},
+  {k:'hq',    label:'總部抽查'}
+];
+function kindOf(r){
+  const sc = String(r['盤點範圍']||'');
+  if(sc.indexOf('總部抽查') >= 0) return 'hq';
+  if(sc.indexOf('手機+平板') >= 0) return 'daily';
+  return 'full';
+}
+function kindName(k){ const f=KINDS.find(x=>x.k===k); return f?f.label:k; }
+/* 卡片上「本月還沒…」用的短句 */
+const KIND_NONE = {all:'本月還沒上傳', daily:'本月還沒盤', full:'本月還沒全盤', hq:'本月還沒抽查'};
+let KIND = 'all';
+function setKind(k){ KIND = k; paintKindTabs(); paintStores(); paintTable(); }
+function kindRows(){ return KIND==='all' ? ROWS : ROWS.filter(r=>kindOf(r)===KIND); }
+function paintKindTabs(){
+  const box=document.getElementById('kindTabs');
+  if(!box) return;
+  box.innerHTML = KINDS.map(x=>{
+    const n = x.k==='all' ? ROWS.length : ROWS.filter(r=>kindOf(r)===x.k).length;
+    return '<button class="ktab'+(KIND===x.k?' on':'')+'" onclick="setKind(\''+x.k+'\')">'
+         + esc(x.label) + '<span class="kn">' + n + '</span></button>';
+  }).join('');
+}
 function minTxt(n){
   n = Number(n)||0;
   if(n < 60) return n + ' 分';
@@ -343,7 +389,7 @@ async function load(){
       rows = rows.filter(r => r['盤點日期'].slice(0,7) === key);
     }
     ROWS = rows;
-    paintStores(); paintTable();
+    paintKindTabs(); paintStores(); paintTable();
     document.getElementById('mMonth').textContent = m ? m.replace('-','年')+'月' : '全部';
     document.getElementById('mCount').innerHTML = '已收到 <b>'+ROWS.length+'</b> 份';
     document.getElementById('lastSync').textContent =
@@ -360,12 +406,16 @@ async function load(){
 
 function paintStores(){
   const box=document.getElementById('stores');
+  const rows=kindRows();
   const latest={};
-  ROWS.forEach(r=>{ const s=r['門市']; if(!latest[s]) latest[s]=r; });   // ROWS 已是新到舊
+  rows.forEach(r=>{ const s=r['門市']; if(!latest[s]) latest[s]=r; });   // 已是新到舊
+  const t=document.getElementById('storesTitle');
+  if(t) t.textContent = KIND==='all' ? '本月盤點狀況' : ('本月盤點狀況 · ' + kindName(KIND));
+  const today = Math.floor(Date.now()/86400000);
   box.innerHTML = STORES.map(s=>{
     const r=latest[s];
     if(!r) return '<div class="st none"><div class="st-n">'+s+'</div>'
-                 + '<div class="st-s">本月還沒上傳</div></div>';
+                 + '<div class="st-s">' + (KIND_NONE[KIND]||'本月還沒上傳') + '</div></div>';
     const done=Number(r['已盤品項'])||0, base=Number(r['應盤品項'])||0;
     const full = base && done>=base;
     const wait=Number(r['未盤到'])||0;
@@ -374,13 +424,22 @@ function paintStores(){
     return '<div class="st '+(full?'done':'part')+'"><div class="st-n">'+s+'</div>'
       + '<div class="st-s">'+(full?'✓ 盤完並上傳':'只盤了一部分（'+done+'/'+base+'）')
       + '　差異 '+bad+' 項'+(wait?'（含沒盤到 '+wait+'）':'')+'</div>'
-      + '<div class="st-d">'+esc(r['盤點日期'])+'　'+esc(r['盤點人'])+'</div></div>';
+      + '<div class="st-d">'+esc(r['盤點日期'])+'　'+esc(r['盤點人'])
+      + (()=>{ if(KIND!=='full') return '';
+          const d=dparse(r['盤點日期']); if(!d) return '';
+          const ago = today - Math.floor(d.getTime()/86400000);
+          if(ago < 0) return '';
+          const cls = ago>=10 ? ' style="color:var(--bad);font-weight:700"' : '';
+          return '　<span'+cls+'>'+(ago===0?'今天':('距今 '+ago+' 天'))+'</span>';
+        })()
+      + '</div></div>';
   }).join('');
 }
 
 function paintTable(){
   const tb=document.getElementById('tb'), em=document.getElementById('empty');
-  if(!ROWS.length){
+  const rows=kindRows();
+  if(!rows.length){
     tb.innerHTML=''; em.style.display='block';
     if(ALL.length){
       em.innerHTML = '這個月還沒有門市上傳。<br><span style="font-size:13px">'
@@ -394,7 +453,7 @@ function paintTable(){
     return;
   }
   em.style.display='none';
-  tb.innerHTML = ROWS.map((r,i)=>{
+  tb.innerHTML = rows.map((r,i)=>{
     const done=Number(r['已盤品項'])||0, base=Number(r['應盤品項'])||0;
     const full = base && done>=base;
     const wait=Number(r['未盤到'])||0;
@@ -402,6 +461,7 @@ function paintTable(){
     const net=Number(r['淨差異金額'])||0;
     return '<tr onclick="openDetail(\''+esc(r['紀錄編號'])+'\')">'
       + '<td><b>'+esc(r['門市'])+'</b></td>'
+      + '<td><span class="kbadge '+kindOf(r)+'">'+esc(kindName(kindOf(r)))+'</span></td>'
       + '<td>'+esc(r['盤點日期'])+'</td>'
       + '<td style="font-size:12px;color:var(--muted)">'+esc(r['盤點範圍'])+'</td>'
       + '<td>'+esc(r['盤點人'])+'</td>'
@@ -533,14 +593,15 @@ function showAll(){
   document.getElementById('mon').value='';
   document.getElementById('mMonth').textContent='全部';
   document.getElementById('mCount').innerHTML='已收到 <b>'+ROWS.length+'</b> 份';
-  paintStores(); paintTable();
+  paintKindTabs(); paintStores(); paintTable();
 }
 
 /* ── 匯出 ── */
 function toCsv(){
-  if(!ROWS.length){ toast('沒有資料可以匯出'); return; }
+  const rows=kindRows();
+  if(!rows.length){ toast('沒有資料可以匯出'); return; }
   const head=Object.keys(ROWS[0]).filter(k=>k.charAt(0)!=='_');
-  const lines=[head.join(',')].concat(ROWS.map(r=>head.map(h=>{
+  const lines=[head.join(',')].concat(rows.map(r=>head.map(h=>{
     const v=String(r[h]==null?'':r[h]);
     return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
   }).join(',')));
