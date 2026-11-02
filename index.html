@@ -412,6 +412,7 @@ function render(){
     $('menuGrid').innerHTML=APPS.filter(a=>a.ready).map(a=>'<button class="card" data-url="'+esc(pick(a.url))+'">'
       +'<span class="ico">'+a.ico+'</span><span class="txt"><b>'+esc(pick(a.name))+'</b><small>'+esc(pick(a.desc))+'</small></span><span class="arrow">›</span></button>').join('');
     $('menuGrid').querySelectorAll('[data-url]').forEach(b=>b.onclick=()=>{ssoSave();location.href=b.dataset.url;});
+    if(r==='store')markNewArrival(nm);
     ssoSave();show('menu');return;
   }
   if(VIEW==='gate'){
@@ -434,6 +435,24 @@ function goStore(k){
   GATESTORE=k;VIEW='gate';render();
 }
 function goHome(){VIEW='home';GATESTORE='';ACT='';ssoClear();render();}
+/* 有新到貨：比對到貨貼標記的「上次知道了」時間（同網域共用 localStorage），在卡片上亮紅色提示 */
+async function markNewArrival(store){
+  try{
+    if(!CLOUD||!store)return;
+    const seen=localStorage.getItem('emo:seen:'+store)||'';
+    if(!seen)return;
+    const {data}=await CloudDB.sb.from('batches').select('published_at,items').eq('store',store).gt('published_at',seen).limit(50);
+    if(!data||!data.length)return;
+    const n=data.reduce((a,b)=>a+((b.items||[]).length),0);
+    const btn=document.querySelector('#menuGrid [data-url="/barcode/"]');
+    if(!btn||btn.querySelector('.newTag'))return;
+    btn.style.position='relative';btn.style.borderColor='#d93025';
+    const t=document.createElement('span');t.className='newTag';
+    t.style.cssText='position:absolute;top:-10px;right:-6px;background:#d93025;color:#fff;font-weight:800;font-size:15px;padding:5px 12px;border-radius:999px;box-shadow:0 4px 10px rgba(217,48,37,.35)';
+    t.textContent='🔔 有新到貨 '+n+' 件';
+    btn.appendChild(t);
+  }catch(e){}
+}
 function setAct(k){ACT=STORE_KEYS[k]?k:'';ssoSave();render();toast(ACT?('已切換成 '+STORE_KEYS[ACT]+' 的畫面'):'已切回總部');}
 $('actSel').onchange=e=>setAct(e.target.value);
 $('hqLink').onclick=e=>{e.preventDefault();GATESTORE='';VIEW='gate';render();};
