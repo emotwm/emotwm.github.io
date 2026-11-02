@@ -1841,7 +1841,39 @@ async function renderArrivals(){
   }
   const days=groupByDate(batches);STDAYS=days;
   showDayItems(days[0],true,'',dayHeader(days[0]));
+  newBanner(batches);
 }
+/* ── 新到貨提醒：比對上次「知道了」的時間，有更新就顯示醒目提示；開著時每 3 分鐘自動檢查 ── */
+let LOADED_LAST='';
+function seenKey(){return 'emo:seen:'+MYSTORE;}
+function lastPub(bs){return bs.reduce((m,b)=>b.published_at>m?b.published_at:m,'');}
+function newBanner(batches){
+  const last=lastPub(batches);LOADED_LAST=last;
+  let seen='';try{seen=localStorage.getItem(seenKey())||'';}catch(e){}
+  const fresh=seen?batches.filter(b=>b.published_at>seen):[];
+  const old=$('newBan');if(old)old.remove();
+  if(!seen){try{localStorage.setItem(seenKey(),last);}catch(e){}return;}
+  if(!fresh.length){document.title=document.title.replace(/^🔔 /,'');return;}
+  const n=fresh.reduce((a,b)=>a+(b.items||[]).length,0);
+  const d=document.createElement('div');d.id='newBan';
+  d.style.cssText='background:#d93025;color:#fff;font-size:18px;font-weight:700;padding:14px 16px;border-radius:8px;margin:0 0 12px;display:flex;gap:12px;align-items:center;justify-content:space-between';
+  d.innerHTML='<span>🔔 有新到貨！共 '+n+' 件（'+new Date(lastPub(fresh)).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})+' 更新）</span><button class="stbtn" id="newBanOk" style="font-size:15px">知道了</button>';
+  $('arrivals').prepend(d);
+  document.title=document.title.replace(/^🔔 /,'')&&('🔔 '+document.title.replace(/^🔔 /,''));
+  $('newBanOk').onclick=()=>{try{localStorage.setItem(seenKey(),last);}catch(e){}d.remove();document.title=document.title.replace(/^🔔 /,'');};
+}
+setInterval(async()=>{
+  if(document.hidden&&false)return;
+  if(!MYSTORE||PANE!=='arr')return;
+  try{const bs=await DB.batches(MYSTORE);
+    if(lastPub(bs)>LOADED_LAST&&!$('newBanReload')){
+      const d=document.createElement('div');d.id='newBanReload';
+      d.style.cssText='background:#d93025;color:#fff;font-size:18px;font-weight:700;padding:14px 16px;border-radius:8px;margin:0 0 12px;cursor:pointer';
+      d.textContent='🔔 總部剛發布新到貨，點這裡更新';
+      d.onclick=()=>renderArrivals();
+      $('arrivals').prepend(d);
+    }}catch(e){}
+},180000);
 let STDAYS=[];
 function showStorePane(name){
   ARRMODE=name==='old'?'old':'today';
