@@ -1025,10 +1025,12 @@ function classify(code,name,unit){
 }
 /* 大類是「行動電話類(唯一)／平板電腦(唯一)」的商品，標籤要印建議售價（取發貨單單價） */
 const RETAIL_CATS=/^(行動電話類|平板電腦)\(唯一\)$/;
-function needsRetail(name){
-  if(!/[(（](台|經銷)[)）]/.test(name))return false;   /* 品名要有(台)或(經銷) */
-  const sku=NAME2CODE[name];if(!sku)return false;
-  const c=CAT.find(x=>x.sku===sku);return !!(c&&RETAIL_CATS.test(c.cat));
+/* 品名要有(台)或(經銷)；且大類是手機／平板，或是有序號／IMEI 的唯一商品（手錶、AirPods、清單裡還沒有的新機型） */
+function needsRetail(name,isUniq){
+  if(!/[(（](台|經銷)[)）]/.test(name))return false;
+  const sku=NAME2CODE[name];
+  if(sku){const c=CAT.find(x=>x.sku===sku);if(c&&(RETAIL_CATS.test(c.cat)||UNIQUE_CATS.test(c.cat)))return true;}
+  return !!isUniq;
 }
 function parseReport(text){
   const doc=new DOMParser().parseFromString(text,'text/html');
@@ -1051,7 +1053,7 @@ function parseReport(text){
     const qm=qtyCell.match(/^(\d+)\s*(.*)$/);
     const k=classify(code,a,qm?qm[2]:'');
     const cost=parseInt(String(c[3]||'').replace(/[,\s]/g,''),10);
-    rows.push(Object.assign({store,docno,original_name:a,label_name:guardVendor(a,shorten(a)),cost_code:costCode(cost,code),retail:(cost>0&&needsRetail(a))?Math.round(cost):0,
+    rows.push(Object.assign({store,docno,original_name:a,label_name:guardVendor(a,shorten(a)),cost_code:costCode(cost,code),retail:(cost>0&&needsRetail(a,!!(k.imei||k.serial)))?Math.round(cost):0,
       qty:Math.max(1,parseInt(qm?qm[1]:'1',10)||1),unit:qm?qm[2]:''},k));
   }
   return rows;
