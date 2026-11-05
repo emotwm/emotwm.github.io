@@ -167,7 +167,7 @@ summary{cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.13
 .l2{font-size:6pt;line-height:1;display:flex;justify-content:space-between;gap:2mm;white-space:nowrap;font-weight:500}
 .l3{height:4.8mm;display:flex;justify-content:center;align-items:center}
 .l3 svg{height:100%}
-.l4 .rp{font-weight:700}
+.l2 .rp{font-weight:700}
 .l4{font-size:6pt;line-height:1;display:flex;justify-content:space-between;white-space:nowrap;font-weight:500}
 footer{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.94);
  border-top:1px solid var(--rule);padding:10px 18px;display:flex;align-items:center;gap:12px;
@@ -1088,11 +1088,10 @@ function labelHTML(it,cls,storeName,docno){
   return '<div class="'+cls+'">'
    +'<div class="l1">'+esc(it.label_name)+'</div>'
    /* 第二行右邊：有成本編碼就印編碼（條碼號碼下面一行已經有，不重複印） */
-   +'<div class="l2"><span>'+esc(left)+'</span><span>'+esc(it.cost_code||bc)+'</span></div>'
+   +'<div class="l2"><span>'+esc(left)+'</span>'
+   +(it.retail>0?'<span class="rp">建議售價 $'+Number(it.retail).toLocaleString('en-US')+'</span>':'<span>'+esc(it.cost_code||bc)+'</span>')+'</div>'
    +'<div class="l3">'+barcodeSVG(bc)+'</div>'
-   +'<div class="l4"><span>'+esc(bc)+'</span>'
-   +(it.retail>0?'<span class="rp">建議售價 $'+Number(it.retail).toLocaleString('en-US')+'</span>':'')
-   +'<span>'+esc(right)+'</span></div></div>';
+   +'<div class="l4"><span>'+esc(bc)+'</span><span>'+esc(right)+'</span></div></div>';
 }
 
 /* ══════════ 列印佇列 ══════════ */
