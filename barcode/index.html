@@ -545,8 +545,9 @@ footer .cnt strong{color:var(--brand)}
       <button data-sp="arr" class="on">📦 到貨列印</button>
       <button data-sp="search">🔍 補印搜尋 🔒<span class="navcnt" id="navExtra"></span></button>
       <button data-sp="old">📅 以前的到貨 🔒</button>
+      <button data-sp="rules">📖 縮名對照</button>
     </nav>
-    <p class="hint" style="margin:-8px 0 10px"><b>三個分頁各印各的</b>：在哪個分頁按「🖨 列印標籤」，就只印那個分頁的東西。目的地選 <b>Godex DT2x</b> 按「列印」。<b>🔒 補印</b>（補印搜尋、以前的到貨）要店經理或庫存管理輸入密碼。</p>
+    <p class="hint" style="margin:-8px 0 10px"><b>各分頁各印各的</b>：在哪個分頁按「🖨 列印標籤」，就只印那個分頁的東西。目的地選 <b>Godex DT2x</b> 按「列印」。<b>🔒 補印</b>（補印搜尋、以前的到貨）要店經理或庫存管理輸入密碼。</p>
 
     <div class="stpane card" data-sp="arr old">
       <div class="cardHead" id="arrHead">
@@ -565,6 +566,40 @@ footer .cnt strong{color:var(--brand)}
       <input type="text" id="q" class="rpInput" placeholder="🔍 打型號或品名搜尋，例如：A57、玻璃貼、0170502" autocomplete="off">
       <p class="hint" id="qinfo"></p>
       <div id="qres"></div>
+    </div>
+    <div class="stpane card" data-sp="rules" hidden>
+      <div class="cardHead"><h3 class="cardTitle" style="margin:0">標籤上的商品名為什麼這樣寫？</h3></div>
+      <p class="hint" style="margin:0 0 10px">標籤只有一行可以寫名字，太長放不下，所以總部統一把品名縮短。<b>縮的只是寫法，商品本身沒變</b>，對不上時看下面的對照。名稱門市無法修改，有問題請告訴總部。</p>
+      <style>.rt{width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px}.rt th,.rt td{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}.rt th{background:#FFF4E8;font-weight:700}.rt td:first-child{white-space:nowrap;font-weight:700}</style>
+      <h4 style="margin:6px 0">① 最後面的括號：商品是誰的貨（不會被縮掉）</h4>
+      <table class="rt"><tr><th>標籤</th><th>意思</th></tr>
+        <tr><td>(台)</td><td>台灣大哥大的貨</td></tr>
+        <tr><td>(廣)</td><td>廣吉的貨</td></tr>
+        <tr><td>(普)</td><td>普格爾的貨</td></tr>
+        <tr><td>(經銷)</td><td>經銷的貨（手機／平板）</td></tr></table>
+      <h4 style="margin:6px 0">② 手機、平板</h4>
+      <table class="rt"><tr><th>標籤寫法</th><th>原本品名</th></tr>
+        <tr><td>iP17 Pm</td><td>iPhone 17 Pro Max（iPhone 一律縮成 iP，Pro＝P，Pro Max＝Pm）</td></tr>
+        <tr><td>iP Air／iP Duo</td><td>iPhone Air／iPhone Duo</td></tr>
+        <tr><td>Sam</td><td>Samsung（三星）</td></tr>
+        <tr><td>8G/256G</td><td>8GB/256GB（記憶體/容量）</td></tr>
+        <tr><td>AirPods Pro 3</td><td>Apple AirPods Pro 3（不寫 Apple、不寫「耳機」）</td></tr>
+        <tr><td>AW S12 GPS46｜黑鋁｜黑帶【SM】</td><td>Apple Watch S12、GPS 款、46mm、黑色鋁殼、黑色錶帶、尺寸 S/M</td></tr></table>
+      <h4 style="margin:6px 0">③ 配件品牌（品牌都有留，只是縮寫）</h4>
+      <table class="rt"><tr><th>標籤寫法</th><th>品牌</th></tr>
+        <tr><td>MM</td><td>Mobi Mate</td></tr><tr><td>TRS</td><td>TORRAS</td></tr><tr><td>PG</td><td>PureGear</td></tr>
+        <tr><td>SLD</td><td>Solide</td></tr><tr><td>RS</td><td>犀牛盾</td></tr><tr><td>TLF</td><td>太樂芬</td></tr><tr><td>HPZ</td><td>Hipporizz</td></tr></table>
+      <h4 style="margin:6px 0">④ 常見品項</h4>
+      <table class="rt"><tr><th>標籤寫法</th><th>原本品名</th></tr>
+        <tr><td>玻璃貼</td><td>玻璃（螢幕）保護貼</td></tr><tr><td>鏡頭貼</td><td>鏡頭保護貼</td></tr><tr><td>貼</td><td>保護貼</td></tr>
+        <tr><td>殼／套</td><td>保護殼、手機殼／保護套</td></tr><tr><td>電源</td><td>行動電源</td></tr><tr><td>耳機</td><td>藍牙（藍芽）耳機</td></tr>
+        <tr><td>充電線／C-C</td><td>傳輸充電線／USB-C to USB-C</td></tr><tr><td>旅充組</td><td>快速旅充組</td></tr><tr><td>兒童錶</td><td>兒童手錶、智慧兒童手錶</td></tr>
+        <tr><td>磁吸架／旋轉架／鏡立</td><td>磁吸支架／旋轉支架／鏡頭立架</td></tr></table>
+      <h4 style="margin:6px 0">⑤ 常見款式</h4>
+      <table class="rt"><tr><th>標籤寫法</th><th>原本品名</th></tr>
+        <tr><td>低反藍</td><td>低反光低藍光</td></tr><tr><td>低藍／抗藍</td><td>低藍光／抗藍光</td></tr><tr><td>降噪</td><td>主動式降噪款</td></tr>
+        <tr><td>耐衝／軍規</td><td>耐衝擊／耐衝擊軍規</td></tr><tr><td>滿</td><td>滿版</td></tr><tr><td>康寧貼</td><td>康寧（授權）玻璃保護貼</td></tr></table>
+      <p class="hint">上面只列常見的。標籤上的<b>條碼號碼、日期、發貨單號</b>都沒有縮，看不懂品名時可以用條碼查，或問總部。</p>
     </div>
     <p class="hint">名稱由總部統一制定，門市無法修改。</p>
   </div>
@@ -1888,6 +1923,7 @@ let STDAYS=[];
 function showStorePane(name){
   ARRMODE=name==='old'?'old':'today';
   PANE=name;rebuildQueue();
+  const ft=document.querySelector('footer');if(ft)ft.style.display=name==='rules'?'none':'';
   document.querySelectorAll('#stnav button').forEach(b=>b.classList.toggle('on',b.dataset.sp===name));
   document.querySelectorAll('.stpane').forEach(p=>p.hidden=!p.dataset.sp.split(' ').includes(name));
   $('arrTitle').textContent=name==='old'?'以前的到貨':'勾選要印的到貨商品';
