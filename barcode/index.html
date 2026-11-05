@@ -167,6 +167,7 @@ summary{cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.13
 .l2{font-size:6pt;line-height:1;display:flex;justify-content:space-between;gap:2mm;white-space:nowrap;font-weight:500}
 .l3{height:4.8mm;display:flex;justify-content:center;align-items:center}
 .l3 svg{height:100%}
+.l4 .rp{font-weight:700}
 .l4{font-size:6pt;line-height:1;display:flex;justify-content:space-between;white-space:nowrap;font-weight:500}
 footer{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.94);
  border-top:1px solid var(--rule);padding:10px 18px;display:flex;align-items:center;gap:12px;
@@ -907,7 +908,7 @@ const DB=CLOUD?CloudDB:LocalDB;
 /* 每筆商品的正式欄位 */
 function cleanItem(it){
   return {product_code:it.product_code||'',barcode:it.barcode||'',imei:it.imei||'',serial:it.serial||'',
-    original_name:it.original_name||'',label_name:it.label_name||'',qty:it.qty||1,unit:it.unit||'',cost_code:it.cost_code||''};
+    original_name:it.original_name||'',label_name:it.label_name||'',qty:it.qty||1,unit:it.unit||'',cost_code:it.cost_code||'',retail:it.retail>0?Math.round(it.retail):0};
 }
 /* 條碼列印用哪個值：唯一序號優先 */
 function barcodeOf(it){return it.barcode||it.imei||it.serial||it.product_code||'';}
@@ -987,6 +988,13 @@ function classify(code,name,unit){
   /* 其餘視為唯一序號（如 AirPods 序號） */
   return{product_code:pc,barcode:code,imei:'',serial:code};
 }
+/* 大類是「行動電話類(唯一)／平板電腦(唯一)」的商品，標籤要印建議售價（取發貨單單價） */
+const RETAIL_CATS=/^(行動電話類|平板電腦)\(唯一\)$/;
+function needsRetail(name){
+  if(!/[(（](台|經銷)[)）]/.test(name))return false;   /* 品名要有(台)或(經銷) */
+  const sku=NAME2CODE[name];if(!sku)return false;
+  const c=CAT.find(x=>x.sku===sku);return !!(c&&RETAIL_CATS.test(c.cat));
+}
 function parseReport(text){
   const doc=new DOMParser().parseFromString(text,'text/html');
   const rows=[];let store='',docno='';
@@ -1008,7 +1016,7 @@ function parseReport(text){
     const qm=qtyCell.match(/^(\d+)\s*(.*)$/);
     const k=classify(code,a,qm?qm[2]:'');
     const cost=parseInt(String(c[3]||'').replace(/[,\s]/g,''),10);
-    rows.push(Object.assign({store,docno,original_name:a,label_name:guardVendor(a,shorten(a)),cost_code:costCode(cost,code),
+    rows.push(Object.assign({store,docno,original_name:a,label_name:guardVendor(a,shorten(a)),cost_code:costCode(cost,code),retail:(cost>0&&needsRetail(a))?Math.round(cost):0,
       qty:Math.max(1,parseInt(qm?qm[1]:'1',10)||1),unit:qm?qm[2]:''},k));
   }
   return rows;
@@ -1045,7 +1053,9 @@ function labelHTML(it,cls,storeName,docno){
    /* 第二行右邊：有成本編碼就印編碼（條碼號碼下面一行已經有，不重複印） */
    +'<div class="l2"><span>'+esc(left)+'</span><span>'+esc(it.cost_code||bc)+'</span></div>'
    +'<div class="l3">'+barcodeSVG(bc)+'</div>'
-   +'<div class="l4"><span>'+esc(bc)+'</span><span>'+esc(right)+'</span></div></div>';
+   +'<div class="l4"><span>'+esc(bc)+'</span>'
+   +(it.retail>0?'<span class="rp">建議售價 $'+Number(it.retail).toLocaleString('en-US')+'</span>':'')
+   +'<span>'+esc(right)+'</span></div></div>';
 }
 
 /* ══════════ 列印佇列 ══════════ */
