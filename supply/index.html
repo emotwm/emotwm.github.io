@@ -291,7 +291,7 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.06a';
+const VER='2026.11.06b';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨'];
 const DEFAULT_ITEMS=[
@@ -897,17 +897,29 @@ onSnapshot(STORES_DOC, s => {
   window.onStores(d && Array.isArray(d.stores) ? d.stores : null, !!d);
 }, e => console.error(e));
 
-/* 門市只看自己店（純等值查詢，不需索引）；總部看全部（申請單都是文字，很小） */
+/* 門市只看自己店（純等值查詢，不需索引）；總部看全部（申請單都是文字，很小）
+   讀取失敗（網路斷、權限暫時擋）不會停住：10 秒後自動重連 */
 const q = IS_ADMIN ? COL : query(COL, where('store', '==', MY_STORE));
-onSnapshot(q, s => {
-  const list = s.docs.map(d => {
-    const x = d.data({serverTimestamps: 'estimate'});
-    if (!x.createdTs && x.createdAt && x.createdAt.toMillis) x.createdTs = x.createdAt.toMillis();
-    return {id: d.id, ...x};
+let unsub = null, retryT = null;
+function listenReqs() {
+  clearTimeout(retryT);
+  if (unsub) { try { unsub(); } catch (e) {} unsub = null; }
+  unsub = onSnapshot(q, s => {
+    const list = s.docs.map(d => {
+      const x = d.data({serverTimestamps: 'estimate'});
+      if (!x.createdTs && x.createdAt && x.createdAt.toMillis) x.createdTs = x.createdAt.toMillis();
+      return {id: d.id, ...x};
+    });
+    if (!s.metadata.fromCache) window.onConn('ok');
+    window.onReqs(list);
+  }, e => {
+    console.error(e);
+    window.onConn('err', '申請單讀取失敗，10 秒後自動重試…（一直出現請截圖給總部）');
+    retryT = setTimeout(listenReqs, 10000);
   });
-  window.onConn('ok');
-  window.onReqs(list);
-}, e => { console.error(e); window.onConn('err', '申請單讀取失敗：請檢查網路後重新整理'); });
+}
+listenReqs();
+window.addEventListener('online', listenReqs);
 </script>
 </body>
 </html>
