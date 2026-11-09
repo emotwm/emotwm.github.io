@@ -1110,7 +1110,8 @@ function doAfterLogin(){
     waitRecs(renderHist);
   }
   // 登入後索取通知權限並登記手機
-  if(window.registerPush) setTimeout(()=>window.registerPush(), 400);
+  // module 比一般 script 晚載入：等 registerPush 定義好再登記（每 0.5 秒看一次，最多 30 秒）
+  (function waitPush(n){ if(window.registerPush){ window.registerPush(); return; } if(n<60) setTimeout(()=>waitPush(n+1),500); })(0);
 }
 
 document.getElementById('login-btn').addEventListener('click',doLogin);

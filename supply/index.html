@@ -60,6 +60,9 @@ input,select,textarea{font-family:inherit;font-size:16px}
 .conn{display:none;background:var(--s1-bg);color:var(--s1);border-radius:10px;padding:9px 12px;
   font-size:13px;margin-bottom:10px}
 .conn.show{display:block}
+.pushbar{display:none;align-items:center;gap:10px;background:#FFF3E0;border:1px solid #F6C9A5;color:#8A3A10;border-radius:12px;padding:9px 12px;font-size:13.5px;margin-bottom:10px;line-height:1.5}
+.pushbar.show{display:flex}
+.pushbar span{flex:1;min-width:0}
 .conn.err{background:var(--bad-bg);color:var(--bad)}
 
 /* 卡片 */
@@ -275,6 +278,7 @@ table.st td.z{color:#D5CBBF}
   </header>
   <nav class="tabs" id="tabs"></nav>
   <div class="conn" id="conn">連線中…</div>
+  <div class="pushbar" id="pushbar"></div>
   <main id="main"></main>
 </div>
 <div class="sbar" id="sbar" style="display:none">
@@ -296,7 +300,7 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.09f';
+const VER='2026.11.09g';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨'];
 const DEFAULT_ITEMS=[
@@ -938,6 +942,21 @@ window.onConn=function(st,msg){const c=$('conn');
   c.className='conn show'+(st==='err'?' err':'');c.textContent=msg;
 };
 
+/* ── 通知登記狀態 ── */
+window.onPushState=function(st){
+  const b=$('pushbar');
+  if(st==='default'){b.innerHTML=`<span>🔔 開啟通知：${IS_ADMIN?'門市一申請':'總部一訂貨'}，這台就會跳通知</span><button class="btn sm pri" onclick="askPush()">開啟</button>`;b.classList.add('show');}
+  else if(st==='denied'){b.innerHTML=`<span>🔕 這台的通知被封鎖了，收不到${IS_ADMIN?'門市申請':'訂貨'}通知。要到瀏覽器網址列左邊的設定把「通知」改成允許。</span>`;b.classList.add('show');}
+  else if(st==='unsupported'&&/iPhone|iPad/.test(navigator.userAgent)){b.innerHTML=`<span>📱 iPhone 用一般 Safari 收不到通知；要收通知請用「加入主畫面」的進貨單 App 開一次並允許通知。</span>`;b.classList.add('show');}
+  else b.classList.remove('show');
+};
+async function askPush(){
+  if(!fbReady()||!FB.regPush){toast('還在連線，請稍候');return;}
+  const st=await FB.regPush(true);
+  onPushState(st);
+  toast(st==='ok'?'✅ 已開啟通知':st==='denied'?'通知被拒絕了':'開啟失敗，請稍後再試');
+}
+
 /* ── 立刻進畫面，不等資料 ── */
 initHeader();
 render();
@@ -946,6 +965,7 @@ onConn('wait','連線中…');
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging.js";
 import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, where, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -988,6 +1008,31 @@ window.FB = {
     } catch (e) { console.warn('推播失敗', e); }
   }
 };
+
+/* 手機登記（同進貨單：同一個 SW、同一個 pushTokens）。ask=true 才跳權限視窗（iPhone 必須使用者親手按） */
+const VAPID_KEY = "BAkPwW4LgB7f0CFmOr2HX2IOCuI89772gDpniRFBKZNcgXuY5-0CozJg7OC5ux7EhCmYadQY9ZrU8XyIZ_0Hh2E";
+async function regPush(ask) {
+  try {
+    if (SSO.actingAdmin) return 'acting';                       /* 總部代看門市：不要把總部的手機登記成門市 */
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return 'unsupported';
+    if (!(await isSupported())) return 'unsupported';
+    if (location.protocol !== 'https:') return 'nohttps';
+    let perm = Notification.permission;
+    if (perm === 'default') { if (!ask) return 'default'; perm = await Notification.requestPermission(); }
+    if (perm !== 'granted') return perm;
+    const swReg = await navigator.serviceWorker.register('/telecom-invoice/firebase-messaging-sw.js', {scope: '/telecom-invoice/'});
+    const token = await getToken(getMessaging(app), {vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg});
+    if (!token) return 'notoken';
+    const owner = IS_ADMIN ? 'admin' : MY_STORE;
+    if (!owner) return 'noowner';
+    const snap = await getDocs(query(collection(db, 'pushTokens'), where('token', '==', token)));
+    if (snap.empty) await addDoc(collection(db, 'pushTokens'), {owner, token, ua: navigator.userAgent, src: 'supply', updatedAt: serverTimestamp()});
+    else await updateDoc(doc(db, 'pushTokens', snap.docs[0].id), {owner, updatedAt: serverTimestamp()});
+    return 'ok';
+  } catch (e) { console.warn('推播登記失敗', e); return 'err'; }
+}
+window.FB.regPush = regPush;
+regPush(false).then(st => window.onPushState && window.onPushState(st));
 
 onSnapshot(ITEMS_DOC, s => {
   const d = s.exists() ? s.data() : null;
