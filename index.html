@@ -413,7 +413,7 @@ function render(){
     $('menuGrid').innerHTML=APPS.filter(a=>a.ready).map(a=>'<button class="card" data-url="'+esc(pick(a.url))+'">'
       +'<span class="ico">'+a.ico+'</span><span class="txt"><b>'+esc(pick(a.name))+'</b><small>'+esc(pick(a.desc))+'</small></span><span class="arrow">›</span></button>').join('');
     $('menuGrid').querySelectorAll('[data-url]').forEach(b=>b.onclick=()=>{ssoSave();location.href=b.dataset.url;});
-    if(r==='store')markNewArrival(nm);
+    if(r==='store'){if(!acting)markNewArrival(nm);}   /* 總部代看門市：不顯示到貨紅標（數字是這台電腦累積的，不是門市的） */
     else markSupply();
     ssoSave();show('menu');return;
   }
