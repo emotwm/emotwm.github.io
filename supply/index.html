@@ -289,13 +289,14 @@ table.st td.z{color:#D5CBBF}
 <script>
 /* ═══════════════════════════════════════════════════════════
    倚盟工具箱 · 耗材管理  （/supply/）
-   流程：門市申請 → 總部訂貨 → 總部已出貨
+   流程：門市申請 → 總部訂貨（廠商直接寄門市）→ 門市收到
+   ※ 資料庫狀態值沿用 '已出貨'（＝已到貨／門市已收到），畫面一律顯示「已到貨」
    資料：Firebase（同進貨單專案 telecom-invoice）
      settings/supplyItems   品項清單 {items:[{id,name,unit,cat,note,active}]}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.09e';
+const VER='2026.11.09f';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨'];
 const DEFAULT_ITEMS=[
@@ -552,14 +553,14 @@ function flowHtml(r){
   FLOW.forEach((s,i)=>{
     const cls=i<idx||(i===idx&&i===2)?'done':(i===idx?'cur':'');
     if(i)h+=`<div class="bar${i<=idx?' done':''}"></div>`;
-    h+=`<div class="dot ${cls}"><i>${i<=idx?'✓':''}</i>${s==='已申請'?'門市申請':s==='已訂貨'?'總部訂貨':'總部出貨'}<small>${i<=idx?fmtD(ts[i]):''}</small></div>`;
+    h+=`<div class="dot ${cls}"><i>${i<=idx?'✓':''}</i>${s==='已申請'?'門市申請':s==='已訂貨'?'總部訂貨':'門市收到'}<small>${i<=idx?fmtD(ts[i]):''}</small></div>`;
   });
   return h+'</div>';
 }
 function rqCard(r,admin){
   let h=`<div class="rq"><div class="rq-top">`;
   if(admin)h+=`<span class="rq-store">${esc(r.store)}</span>`;
-  h+=`<span class="rq-date">${fmtDT(r.createdTs)}</span><span class="pill p-${esc(r.status)}">${esc(r.status==='已申請'?'等待總部訂貨':r.status==='已訂貨'?'已訂貨・待出貨':r.status)}</span></div>`;
+  h+=`<span class="rq-date">${fmtDT(r.createdTs)}</span><span class="pill p-${esc(r.status)}">${esc(r.status==='已申請'?'等待總部訂貨':r.status==='已訂貨'?'已訂貨・等廠商寄到':r.status==='已出貨'?'已到貨':r.status)}</span></div>`;
   if(admin){const c=storeCfg(r.store);if(c&&(c.company||c.taxId||c.addr))h+=`<div class="rq-co"><span>${esc(c.company||'')}${c.taxId?`・統編 <b>${esc(c.taxId)}</b>`:''}<br>${esc(c.addr||'')}</span><button class="btn sm ghost" onclick="copyCo('${esc(r.store)}')">📋 複製</button></div>`;}
   h+=flowHtml(r);
   if((r.items||[]).length)h+=`<div class="rq-items">${r.items.map(x=>`<span class="chip${x.orig!=null&&x.orig!==x.qty?' chg':''}">${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}<b>×${x.qty}</b>${esc(x.unit||'')}${x.orig!=null&&x.orig!==x.qty?` <small>(原 ${x.orig})</small>`:''}</span>`).join('')}</div>`;
@@ -567,7 +568,7 @@ function rqCard(r,admin){
   if(r.by)meta.push(`申請人 <b>${esc(r.by)}</b>`);
   if(r.remark)meta.push(`備註：${esc(r.remark)}`);
   if(r.status==='已取消')meta.push(`${r.cancelBy==='admin'?'總部':'門市'}於 ${fmtDT(r.cancelTs)} 取消`);
-  if(r.status==='已出貨'&&r.shippedTs)meta.push(`出貨時間 ${fmtDT(r.shippedTs)}`);
+  if(r.status==='已出貨'&&r.shippedTs)meta.push(`${r.recvBy==='store'?'門市確認收到':'總部標記到貨'} ${fmtDT(r.shippedTs)}`);
   if(meta.length)h+=`<div class="rq-meta">${meta.join('<br>')}</div>`;
   if(r.hqNote)h+=`<div class="rq-hq">總部：${esc(r.hqNote)}</div>`;
   const acts=admin?adminActs(r):storeActs(r);
@@ -586,8 +587,15 @@ function itemsBrief(items){
   return t.length>60?t.slice(0,58)+'…':t;
 }
 function pushTo(owner,title,body){if(fbReady()&&FB.push)FB.push(owner,title,body);}
+function askRecv(id){
+  const r=REQS.find(x=>x.id===id);if(!r)return;
+  openOv(`<h3>確認收到這些耗材？</h3><div class="cfl">${(r.items||[]).filter(x=>x.qty).map(x=>`<div><span>${esc(x.name)}</span><b>× ${x.qty} ${esc(x.unit||'')}</b></div>`).join('')}</div>
+    <div class="hint" style="margin-top:8px">東西有少或寄錯，先不要按，直接跟總部說。</div>
+    <div class="ov-foot"><button class="btn" onclick="closeOv()">還沒收到</button><button class="btn ok" onclick="closeOv();setSt('${id}','已出貨')">都收到了</button></div>`);
+}
 function storeActs(r){
   if(r.status==='已申請')return `<button class="btn sm dng" onclick="askCancel('${r.id}',false)">取消這張申請</button>`;
+  if(r.status==='已訂貨')return `<button class="btn sm ok" onclick="askRecv('${r.id}')">✅ 已收到</button>`;
   return '';
 }
 
@@ -596,22 +604,22 @@ function vMine(){
   if(!REQS_LOADED)return `<div class="card"><div class="empty">讀取中…</div></div>`;
   const list=REQS.slice().sort((a,b)=>b.createdTs-a.createdTs);
   if(!list.length)return `<div class="card"><div class="empty">還沒有申請過耗材<br><br><button class="btn pri" onclick="go('apply')">去申請</button></div></div>`;
-  let h=`<div class="card"><h2>我的申請<small>總部訂貨、出貨後這裡會自動更新</small></h2>`;
+  let h=`<div class="card"><h2>我的申請<small>總部訂貨後，廠商會直接寄到門市；收到請按「已收到」</small></h2>`;
   h+=list.slice(0,SHOW_N).map(r=>rqCard(r,false)).join('');
   if(list.length>SHOW_N)h+=`<div style="text-align:center"><button class="btn" onclick="SHOW_N+=30;render()">顯示更多（還有 ${list.length-SHOW_N} 張）</button></div>`;
   return h+'</div>';
 }
 
 /* ══════════ 總部：申請單 ══════════ */
-const ST_OPTS=[['pending','待處理'],['已申請','待訂貨'],['已訂貨','待出貨'],['已出貨','已出貨'],['已取消','已取消'],['all','全部']];
+const ST_OPTS=[['pending','待處理'],['已申請','待訂貨'],['已訂貨','待到貨'],['已出貨','已到貨'],['已取消','已取消'],['all','全部']];
 function vList(){
   if(!REQS_LOADED)return `<div class="card"><div class="empty">讀取中…</div></div>`;
   const n1=REQS.filter(r=>r.status==='已申請').length, n2=REQS.filter(r=>r.status==='已訂貨').length;
   const mk=monthKey(Date.now()), n3=REQS.filter(r=>r.status==='已出貨'&&r.shippedTs&&monthKey(r.shippedTs)===mk).length;
   let h=`<div class="kpis">
     <button class="kpi k1" onclick="setF('st','已申請')"><span>待訂貨</span><b>${n1}</b></button>
-    <button class="kpi k2" onclick="setF('st','已訂貨')"><span>已訂貨・待出貨</span><b>${n2}</b></button>
-    <button class="kpi k3" onclick="setF('st','已出貨')"><span>本月已出貨</span><b>${n3}</b></button></div>`;
+    <button class="kpi k2" onclick="setF('st','已訂貨')"><span>已訂貨・待到貨</span><b>${n2}</b></button>
+    <button class="kpi k3" onclick="setF('st','已出貨')"><span>本月已到貨</span><b>${n3}</b></button></div>`;
   h+=`<div class="filt"><div class="seg">${ST_OPTS.map(([k,t])=>`<button class="${FILT.st===k?'on':''}" onclick="setF('st','${k}')">${t}</button>`).join('')}</div>
     <select class="dd" onchange="setF('store',this.value)" aria-label="門市"><option value="all">全部門市</option>${STORES.map(s=>`<option ${FILT.store===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
   /* 待訂貨彙總：總部一次下訂用 */
@@ -700,8 +708,8 @@ function adminActs(r){
   const id=r.id;let a=[];
   a.push(`<button class="btn sm ghost" onclick="openEdit('${id}')">改數量／備註</button>`);
   if(r.status==='已申請'){a.push(`<button class="btn sm dng" onclick="askCancel('${id}',true)">取消</button>`);a.push(`<button class="btn sm blu" onclick="setSt('${id}','已訂貨')">標記已訂貨</button>`);}
-  else if(r.status==='已訂貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">退回待訂貨</button>`);a.push(`<button class="btn sm ok" onclick="setSt('${id}','已出貨')">標記已出貨</button>`);}
-  else if(r.status==='已出貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已訂貨')">退回待出貨</button>`);}
+  else if(r.status==='已訂貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">退回待訂貨</button>`);a.push(`<button class="btn sm ok" onclick="setSt('${id}','已出貨')">標記已到貨</button>`);}
+  else if(r.status==='已出貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已訂貨')">退回待到貨</button>`);}
   else if(r.status==='已取消'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">恢復申請</button>`);a.push(`<button class="btn sm dng" onclick="askDel('${id}')">刪除</button>`);}
   return a.join('');
 }
@@ -710,10 +718,10 @@ async function setSt(id,st){
   const p={status:st};const now=Date.now();
   if(st==='已申請'){p.orderedTs=null;p.shippedTs=null;p.cancelTs=null;}
   if(st==='已訂貨'){p.orderedTs=now;p.shippedTs=null;}
-  if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&!r.orderedTs)p.orderedTs=now;p.shippedTs=now;}
+  if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&!r.orderedTs)p.orderedTs=now;p.shippedTs=now;p.recvBy=IS_ADMIN?'admin':'store';}
   try{await FB.upd(id,p);
-    if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'📦 耗材已出貨',`總部已出貨：${itemsBrief(r.items)}`);}
-    toast(st==='已訂貨'?'已標記：已訂貨':st==='已出貨'?'已標記：已出貨，門市會看到':'已更新');}
+    if(st==='已訂貨'&&IS_ADMIN){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'🛒 耗材已訂貨',`總部已訂貨，廠商會直接寄到門市：${itemsBrief(r.items)}`);}
+    toast(st==='已訂貨'?'已標記：已訂貨，門市會收到通知':st==='已出貨'?(IS_ADMIN?'已標記：已到貨':'✅ 已確認收到，謝謝'):'已更新');}
   catch(e){toast('❌ 更新失敗，請再試一次');console.error(e);}
 }
 function askBatchOrder(){
@@ -725,7 +733,9 @@ async function doBatchOrder(){
   if(!fbReady()){toast('還在連線，請稍候');return;}
   const pend=REQS.filter(r=>r.status==='已申請'&&(FILT.store==='all'||r.store===FILT.store));
   $('boBtn').disabled=true;
-  try{await FB.batchUpd(pend.map(r=>r.id),{status:'已訂貨',orderedTs:Date.now()});closeOv();toast(`已標記 ${pend.length} 張為已訂貨`);}
+  try{await FB.batchUpd(pend.map(r=>r.id),{status:'已訂貨',orderedTs:Date.now()});closeOv();toast(`已標記 ${pend.length} 張為已訂貨，門市會收到通知`);
+    const by={};pend.forEach(r=>{(by[r.store]=by[r.store]||[]).push(...(r.items||[]));});
+    Object.keys(by).forEach(st=>pushTo(st,'🛒 耗材已訂貨',`總部已訂貨，廠商會直接寄到門市：${itemsBrief(by[st])}`));}
   catch(e){$('boBtn').disabled=false;toast('❌ 更新失敗，請再試一次');console.error(e);}
 }
 function askCancel(id,admin){
@@ -839,7 +849,7 @@ function vStats(){
   const names=Object.keys(m).sort((a,b)=>m[b].t-m[a].t);
   const cnt={};rs.forEach(r=>cnt[r.store]=(cnt[r.store]||0)+1);
   let h=`<div class="filt"><select class="dd" onchange="STAT_MONTH=this.value;render()" aria-label="月份">${months.map(k=>`<option value="${k}" ${k===STAT_MONTH?'selected':''}>${k.replace('-',' 年 ')} 月</option>`).join('')}</select>
-    <div class="seg"><button class="${STAT_SHIPPED?'':'on'}" onclick="STAT_SHIPPED=false;render()">全部申請</button><button class="${STAT_SHIPPED?'on':''}" onclick="STAT_SHIPPED=true;render()">只算已出貨</button></div></div>`;
+    <div class="seg"><button class="${STAT_SHIPPED?'':'on'}" onclick="STAT_SHIPPED=false;render()">全部申請</button><button class="${STAT_SHIPPED?'on':''}" onclick="STAT_SHIPPED=true;render()">只算已到貨</button></div></div>`;
   h+=`<div class="card"><h2>各店用量<small>依申請日期・不含已取消</small></h2>`;
   if(!names.length)h+=`<div class="empty">這個月沒有資料</div>`;
   else{
