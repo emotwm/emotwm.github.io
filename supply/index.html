@@ -291,23 +291,24 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.06b';
+const VER='2026.11.09b';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨'];
 const DEFAULT_ITEMS=[
   {id:'toner',name:'碳粉匣',unit:'個',cat:'事務用品',note:'',opts:['黑','藍','紅','黃'],perPrinter:true,active:true},
-  {id:'a4',name:'A4 影印紙',unit:'包',cat:'事務用品',note:'',active:true}
+  {id:'a4',name:'A4 影印紙',unit:'包',cat:'事務用品',note:'',active:true},
+  {id:'ink',name:'墨水',unit:'瓶',cat:'事務用品',note:'',perInk:true,active:true}
 ];
 /* 各店公司資料與印表機（2026-11-06 EMO 提供的 Excel；總部可在「門市資料」改） */
 const DEFAULT_STORES=[
   {store:'鼎山店',company:'倚盟電訊有限公司',taxId:'27707232',addr:'807高雄市三民區灣愛里鼎山街241號',
-   printers:[{model:'HP Color LaserJet Enterprise MFP 5800',short:'5800',cons:'Brother D60BK'}]},
+   printers:[{model:'HP Color LaserJet Enterprise MFP 5800',short:'5800',cons:''}],inks:['Brother D60BK']},
   {store:'陽明店',company:'倚盟電訊有限公司-陽明分公司',taxId:'53883570',addr:'807高雄市三民區本上里陽明路299號',
-   printers:[{model:'HP Color LaserJet Enterprise MFP M480',short:'M480',cons:'L3110'}]},
+   printers:[{model:'HP Color LaserJet Enterprise MFP M480',short:'M480',cons:''}],inks:['L3110']},
   {store:'後昌店',company:'倚盟電訊有限公司-後昌分公司',taxId:'24658883',addr:'811高雄市楠梓區和昌里後昌路759號',
    printers:[{model:'HP Color LaserJet Enterprise MFP 5800',short:'5800',cons:''}]},
   {store:'仁雄店',company:'倚盟電訊有限公司-仁雄分公司',taxId:'59284566',addr:'814高雄市仁武區赤山里八德南路468號',
-   printers:[{model:'HP Color LaserJet Enterprise MFP M480',short:'M480',cons:''}]},
+   printers:[{model:'HP Color LaserJet Enterprise MFP M480',short:'M480',cons:''},{model:'HP Color Laser 150a',short:'150a',cons:''}]},
   {store:'凱旋店',company:'倚盟電訊有限公司-凱旋分公司',taxId:'94152752',addr:'830高雄市鳳山區國泰里凱旋路246號1樓',
    printers:[{model:'HP Color LaserJet Enterprise MFP M578',short:'M578',cons:''},{model:'HP Color Laser 150a',short:'150a',cons:''}]}
 ];
@@ -349,6 +350,7 @@ function storesCfg(){return STORES_CFG||DEFAULT_STORES;}
 function storeCfg(st){return storesCfg().find(x=>x.store===st)||null;}
 function printersOf(st){const c=storeCfg(st);return c&&Array.isArray(c.printers)?c.printers.filter(p=>p&&(p.short||p.model)):[];}
 function pShort(p){return p.short||p.model;}
+function inksOf(st){const c=storeCfg(st);return c&&Array.isArray(c.inks)?c.inks.filter(Boolean):[];}
 function activeItems(){return (ITEMS||DEFAULT_ITEMS).filter(i=>i.active!==false);}
 function itemById(id){return (ITEMS||DEFAULT_ITEMS).find(i=>i.id===id);}
 function storeIdx(s){const i=STORES.indexOf(s);return i<0?99:i;}
@@ -406,9 +408,16 @@ function vApply(){
     const cat=it.cat||'其他';
     if(cat!==lastCat){h+=`<div class="cat">${esc(cat)}</div>`;lastCat=cat;}
     const op=optsOf(it), prs=it.perPrinter?printersOf(MY_STORE):[];
-    if(prs.length){
+    if(it.perInk){
+      const ik=inksOf(MY_STORE);
+      if(ik.length)ik.forEach((m,k)=>{
+        if(op.length){h+=`<div class="irow ihead"><div class="iname"><b>${esc(it.name)}・${esc(m)}</b></div></div>`;op.forEach((o,j)=>{h+=rowHtml(it.id+'@i'+k+'#'+j,o,'',it.unit,true);});}
+        else h+=rowHtml(it.id+'@i'+k,it.name+'・'+m,it.note,it.unit,false);
+      });
+      else h+=rowHtml(it.id,it.name,'型號未登記：請在下面「備註」寫墨水或印表機型號',it.unit,false);
+    }else if(prs.length){
       prs.forEach((pr,pi)=>{
-        h+=`<div class="irow ihead"><div class="iname"><b>${esc(it.name)}・${esc(pShort(pr))}</b><div>${esc(pr.model||'')}${pr.cons?`｜耗材型號 <b class="cons">${esc(pr.cons)}</b>`:''}</div></div></div>`;
+        h+=`<div class="irow ihead"><div class="iname"><b>${esc(it.name)}・${esc(pShort(pr))}</b><div>${esc(pr.model||'')}${pr.cons?`｜碳粉型號 <b class="cons">${esc(pr.cons)}</b>`:''}</div></div></div>`;
         if(op.length)op.forEach((o,k)=>{h+=rowHtml(it.id+'@'+pi+'#'+k,o,'',it.unit,true);});
         else h+=rowHtml(it.id+'@'+pi,'數量','',it.unit,true);
       });
@@ -462,7 +471,16 @@ function cartLines(){
   const out=[];
   activeItems().forEach(i=>{
     const op=optsOf(i), prs=i.perPrinter?printersOf(MY_STORE):[];
-    if(prs.length){
+    if(i.perInk){
+      const ik=inksOf(MY_STORE);
+      if(ik.length)ik.forEach((m,k)=>{
+        const base={id:i.id,ink:m,unit:i.unit||''};
+        if(op.length)op.forEach((o,j)=>{const q=CART[i.id+'@i'+k+'#'+j];if(q)out.push({...base,key:i.id+'@'+m+'#'+o,opt:o,name:i.name+' '+m+'（'+o+'）',qty:q});});
+        else{const q=CART[i.id+'@i'+k];if(q)out.push({...base,key:i.id+'@'+m,name:i.name+' '+m,qty:q});}
+      });
+      else if(CART[i.id])out.push({id:i.id,key:i.id,name:i.name+'（型號未登記）',unit:i.unit||'',qty:CART[i.id]});
+    }
+    else if(prs.length){
       prs.forEach((pr,pi)=>{
         const sh=pShort(pr), base={id:i.id,printer:sh,model:pr.model||'',cons:pr.cons||'',unit:i.unit||''};
         if(op.length)op.forEach((o,k)=>{const q=CART[i.id+'@'+pi+'#'+k];if(q)out.push({...base,key:i.id+'@'+sh+'#'+o,opt:o,name:i.name+' '+sh+'（'+o+'）',qty:q});});
@@ -513,6 +531,7 @@ async function doSend(){
   try{
     await FB.add({store:MY_STORE,storeKey:SSO.storeKey||'',items:ls,by:who,remark,status:'已申請',
       createdTs:Date.now(),actingAdmin:!!SSO.actingAdmin});
+    if(!SSO.actingAdmin)pushTo('admin','🧻 新耗材申請',`${MY_STORE} ${who}：${itemsBrief(ls)||'（只有備註）'}${remark?'｜'+remark.slice(0,30):''}`);
     lsSet('sup:who:'+MY_STORE,who);lsSet('sup:draft:'+MY_STORE,'');
     CART={};OTHERS=[{name:'',qty:0,unit:''}];SENDING=false;closeOv();toast('✅ 已送出，總部會看到');go('mine');
   }catch(e){
@@ -558,6 +577,11 @@ function copyCo(st){
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done));else fallbackCopy(t,done);
 }
 function fallbackCopy(t,done){const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');done();}catch(e){toast('複製失敗，請手動選取');}a.remove();}
+function itemsBrief(items){
+  const t=(items||[]).filter(x=>x.qty).map(x=>x.name+'×'+x.qty).join('、');
+  return t.length>60?t.slice(0,58)+'…':t;
+}
+function pushTo(owner,title,body){if(fbReady()&&FB.push)FB.push(owner,title,body);}
 function storeActs(r){
   if(r.status==='已申請')return `<button class="btn sm dng" onclick="askCancel('${r.id}',false)">取消這張申請</button>`;
   return '';
@@ -617,7 +641,7 @@ function sumHtml(){
   const rows=Object.values(m).sort((a,b)=>b.qty-a.qty);
   const remarks=pend.filter(r=>r.remark).length;
   let h=`<div class="sum"><h3>🛒 待訂貨彙總<small>${pend.length} 張申請合計，照這個下訂</small></h3>`;
-  h+=rows.map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　耗材型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(x.unit)}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
+  h+=rows.map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(x.unit)}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
   if(remarks)h+=`<div class="hint" style="margin-top:6px">另有 ${remarks} 張附備註，請看下面的單子。</div>`;
   h+=`<div class="rq-act"><button class="btn blu sm" onclick="askBatchOrder()">這 ${pend.length} 張全部標記「已訂貨」</button></div></div>`;
   return h;
@@ -637,7 +661,9 @@ async function setSt(id,st){
   if(st==='已申請'){p.orderedTs=null;p.shippedTs=null;p.cancelTs=null;}
   if(st==='已訂貨'){p.orderedTs=now;p.shippedTs=null;}
   if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&!r.orderedTs)p.orderedTs=now;p.shippedTs=now;}
-  try{await FB.upd(id,p);toast(st==='已訂貨'?'已標記：已訂貨':st==='已出貨'?'已標記：已出貨，門市會看到':'已更新');}
+  try{await FB.upd(id,p);
+    if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'📦 耗材已出貨',`總部已出貨：${itemsBrief(r.items)}`);}
+    toast(st==='已訂貨'?'已標記：已訂貨':st==='已出貨'?'已標記：已出貨，門市會看到':'已更新');}
   catch(e){toast('❌ 更新失敗，請再試一次');console.error(e);}
 }
 function askBatchOrder(){
@@ -661,7 +687,8 @@ async function doCancel(id,admin){
   if(!fbReady()){toast('還在連線，請稍候');return;}
   const p={status:'已取消',cancelTs:Date.now(),cancelBy:admin?'admin':'store'};
   if(admin){const n=$('cxNote').value.trim();if(n)p.hqNote=n;}
-  try{await FB.upd(id,p);closeOv();toast('已取消');}catch(e){toast('❌ 失敗，請再試一次');console.error(e);}
+  try{await FB.upd(id,p);closeOv();toast('已取消');
+    if(admin){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'耗材申請已取消',`總部取消了 ${fmtD(r.createdTs)} 的申請${p.hqNote?'：'+p.hqNote:''}`);}}catch(e){toast('❌ 失敗，請再試一次');console.error(e);}
 }
 function askDel(id){
   openOv(`<h3>永久刪除這張申請？</h3><div class="hint">刪除後找不回來，統計也不會再算到。</div>
@@ -773,11 +800,11 @@ function vStats(){
 
 /* ══════════ 總部：門市資料（抬頭、統編、地址、印表機） ══════════ */
 function vStores(){
-  let h=`<div class="note info">這裡的印表機決定門市申請碳粉匣時看到哪些型號；抬頭、統編、地址會顯示在申請單上，按「📋 複製」可以直接貼給廠商。${!STORES_EXIST&&STORES_CFG===null?'<br>（目前顯示預設值，第一次儲存後才會寫進資料庫）':''}</div>`;
+  let h=`<div class="note info">這裡的印表機、墨水型號決定門市申請碳粉匣、墨水時看到哪些型號；抬頭、統編、地址會顯示在申請單上，按「📋 複製」可以直接貼給廠商。${!STORES_EXIST&&STORES_CFG===null?'<br>（目前顯示預設值，第一次儲存後才會寫進資料庫）':''}</div>`;
   storesCfg().forEach((c,i)=>{
     h+=`<div class="card"><h2>${esc(c.store)}<small>統編 ${esc(c.taxId||'—')}</small></h2>
       <div class="rq-meta" style="margin-top:0">${esc(c.company||'')}<br>${esc(c.addr||'')}</div>
-      <div class="plist">${(c.printers||[]).map(p=>`<div class="prow"><b>${esc(pShort(p))}</b><span>${esc(p.model||'')}</span><span class="${p.cons?'':'unk'}">耗材型號：${p.cons?esc(p.cons):'未登記'}</span></div>`).join('')||'<div class="hint">沒有登記印表機</div>'}</div>
+      <div class="plist">${(c.printers||[]).map(p=>`<div class="prow"><b>${esc(pShort(p))}</b><span>${esc(p.model||'')}</span><span class="${p.cons?'':'unk'}">碳粉型號：${p.cons?esc(p.cons):'未登記'}</span></div>`).join('')||'<div class="hint">沒有登記印表機</div>'}<div class="prow"><b>墨水</b><span class="${inksOf(c.store).length?'':'unk'}">${inksOf(c.store).length?inksOf(c.store).map(esc).join('、'):'型號未登記'}</span></div></div>
       <div class="rq-act"><button class="btn sm ghost" onclick="copyCo('${esc(c.store)}')">📋 複製抬頭</button><button class="btn sm pri" onclick="editStore(${i})">編輯</button></div></div>`;
   });
   return h;
@@ -789,6 +816,7 @@ function editStore(i){
     <label class="lab" for="sCo">公司抬頭</label><input class="inp" id="sCo" maxlength="40" value="${esc(c.company||'')}">
     <label class="lab" for="sTax">統一編號</label><input class="inp" id="sTax" maxlength="8" inputmode="numeric" value="${esc(c.taxId||'')}">
     <label class="lab" for="sAddr">地址</label><input class="inp" id="sAddr" maxlength="80" value="${esc(c.addr||'')}">
+    <label class="lab" for="sInk">墨水型號<span>噴墨印表機用的，多個用逗號分開；空白＝門市申請時寫在備註</span></label><input class="inp" id="sInk" maxlength="80" value="${esc(inksOf(c.store).join(','))}">
     <label class="lab">印表機<span>簡稱會出現在碳粉匣名稱上，例：碳粉匣 M480（黑）</span></label>
     <div id="prBox">${prRows()}</div>
     <button class="btn sm" style="margin-top:8px" onclick="prSync();EDIT_PR.push({model:'',short:'',cons:''});$('prBox').innerHTML=prRows()">＋ 加一台印表機</button>
@@ -798,7 +826,7 @@ function prRows(){
   return EDIT_PR.map((p,j)=>`<div class="pedit">
     <input class="inp" id="pm${j}" placeholder="完整型號，例：HP Color LaserJet Enterprise MFP M480" maxlength="60" value="${esc(p.model||'')}" aria-label="完整型號">
     <div class="orow"><input class="inp" id="ps${j}" placeholder="簡稱，例：M480" maxlength="12" value="${esc(p.short||'')}" aria-label="簡稱" style="flex:1">
-    <input class="inp" id="pc${j}" placeholder="耗材型號（可空白）" maxlength="30" value="${esc(p.cons||'')}" aria-label="耗材型號" style="flex:1.4">
+    <input class="inp" id="pc${j}" placeholder="碳粉型號（可空白）" maxlength="30" value="${esc(p.cons||'')}" aria-label="碳粉型號" style="flex:1.4">
     <button class="ox" onclick="prSync();EDIT_PR.splice(${j},1);$('prBox').innerHTML=prRows()" aria-label="刪除這台">×</button></div></div>`).join('')||'<div class="hint">沒有印表機</div>';
 }
 function prSync(){EDIT_PR=EDIT_PR.map((p,j)=>({model:$('pm'+j).value.trim(),short:$('ps'+j).value.trim().replace(/[#@'"\\<>]/g,''),cons:$('pc'+j).value.trim()}));}
@@ -807,7 +835,7 @@ async function saveStore(i){
   const pr=EDIT_PR.filter(p=>p.model||p.short).map(p=>({...p,short:p.short||p.model}));
   const sh=pr.map(p=>p.short);if(new Set(sh).size!==sh.length){toast('同一間店兩台印表機的簡稱不能一樣');return;}
   const a=storesCfg().map(x=>({...x}));
-  Object.assign(a[i],{company:$('sCo').value.trim(),taxId:$('sTax').value.trim(),addr:$('sAddr').value.trim(),printers:pr});
+  Object.assign(a[i],{company:$('sCo').value.trim(),taxId:$('sTax').value.trim(),addr:$('sAddr').value.trim(),printers:pr,inks:[...new Set($('sInk').value.split(/[,，、]+/).map(x=>x.trim().replace(/[#@'"\\<>]/g,'')).filter(Boolean))]});
   if(!fbReady()){toast('還在連線，請稍候');return;}
   try{await FB.saveStores(a);closeOv();toast('已儲存');}catch(e){toast('❌ 儲存失敗，請再試一次');console.error(e);}
 }
@@ -856,7 +884,7 @@ onConn('wait','連線中…');
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, where, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, where, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCAPljha2I7qqFU49GV2UJC2F64HoKRqnc",
@@ -871,6 +899,7 @@ const db = getFirestore(app);
 const COL = collection(db, 'supplyRequests');
 const ITEMS_DOC = doc(db, 'settings', 'supplyItems');
 const STORES_DOC = doc(db, 'settings', 'supplyStores');
+const PUSH_URL = "https://script.google.com/macros/s/AKfycbxOfnIJOxzCE5SlfZYIpK614PUNntIVrucRS2qAx3pz_O08ptpzUGskgGun-lJcTRB2/exec";  /* 同進貨單 APPS_SCRIPT_URL */
 
 window.FB = {
   add: d => addDoc(COL, {...d, createdAt: serverTimestamp()}),
@@ -884,7 +913,18 @@ window.FB = {
     }
   },
   saveItems: list => setDoc(ITEMS_DOC, {items: list, updatedAt: serverTimestamp()}),
-  saveStores: list => setDoc(STORES_DOC, {stores: list, updatedAt: serverTimestamp()})
+  saveStores: list => setDoc(STORES_DOC, {stores: list, updatedAt: serverTimestamp()}),
+  /* 推播：共用進貨單的手機登記（pushTokens）與 Apps Script 代發；失敗不影響主流程 */
+  push: async (owner, title, body) => {
+    try {
+      if (!owner) return;
+      const snap = await getDocs(query(collection(db, 'pushTokens'), where('owner', '==', owner)));
+      const tokens = snap.docs.map(d => d.data().token).filter(Boolean);
+      if (!tokens.length) { console.log('目標無登記手機:' + owner); return; }
+      await fetch(PUSH_URL, {method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({tokens, title, body})});
+    } catch (e) { console.warn('推播失敗', e); }
+  }
 };
 
 onSnapshot(ITEMS_DOC, s => {
