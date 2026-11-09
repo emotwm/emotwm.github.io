@@ -36,6 +36,8 @@ input,select,textarea{font-family:inherit;font-size:16px}
 .brand{display:flex;align-items:center;gap:13px;background:var(--panel);
   border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin-bottom:10px}
 .logo{flex:none;display:block;height:34px;width:auto}
+.logoHome{flex:none;display:block;cursor:pointer;transition:opacity .15s;border-radius:6px}
+.logoHome:hover{opacity:.8}
 .bsep{width:1px;align-self:stretch;background:var(--line);margin:1px 0}
 .btitle{flex:1;min-width:0}
 .btitle h1{margin:0;font-family:var(--serif);font-size:19px;font-weight:900;letter-spacing:.04em}
@@ -115,6 +117,8 @@ input,select,textarea{font-family:inherit;font-size:16px}
 .pedit .orow{margin-top:7px}
 .chk{display:flex;gap:7px;align-items:flex-start;margin-top:8px;font-size:13px;color:var(--muted);cursor:pointer}
 .chk input{width:17px;height:17px;margin:2px 0 0;accent-color:var(--hot)}
+.lsel{display:flex;flex-direction:column;margin-top:4px}
+.lsel .chk{margin-top:6px;font-size:14.5px;color:var(--ink)}
 .tag.o{background:var(--s2-bg);color:var(--s2);margin-left:0}
 .unit{flex:none;width:26px;font-size:13px;color:var(--muted)}
 
@@ -261,13 +265,13 @@ table.st td.z{color:#D5CBBF}
 <body>
 <div class="wrap">
   <header class="brand">
-    <img class="logo" alt="倚盟電訊" src="data:image/png;base64,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">
+    <a href="/" title="回倚盟工具箱首頁" class="logoHome"><img class="logo" alt="倚盟電訊（回工具箱首頁）" src="data:image/png;base64,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"></a>
     <div class="bsep"></div>
     <div class="btitle">
       <h1 id="hTitle">耗材管理</h1>
       <div class="bmeta"><span class="badge" id="hStore" style="display:none"></span><span id="hDate"></span><span id="hVer"></span></div>
     </div>
-    <a class="hubbtn" href="/" title="回倚盟工具箱">☰ 工具箱</a>
+    <a class="hubbtn" href="/" title="回倚盟工具箱">☰ 回工具箱</a>
   </header>
   <nav class="tabs" id="tabs"></nav>
   <div class="conn" id="conn">連線中…</div>
@@ -291,13 +295,14 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.09b';
+const VER='2026.11.09e';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨'];
 const DEFAULT_ITEMS=[
   {id:'toner',name:'碳粉匣',unit:'個',cat:'事務用品',note:'',opts:['黑','藍','紅','黃'],perPrinter:true,active:true},
   {id:'a4',name:'A4 影印紙',unit:'包',cat:'事務用品',note:'',active:true},
-  {id:'ink',name:'墨水',unit:'瓶',cat:'事務用品',note:'',perInk:true,active:true}
+  {id:'ink',name:'墨水',unit:'瓶',cat:'事務用品',note:'',perStore:true,models:{'鼎山店':['Brother D60BK'],'陽明店':['L3110']},active:true},
+  {id:'ribbon',name:'收銀機色帶',unit:'個',cat:'事務用品',note:'',perStore:true,models:{'鼎山店':['Winpos WP-103S']},active:true}
 ];
 /* 各店公司資料與印表機（2026-11-06 EMO 提供的 Excel；總部可在「門市資料」改） */
 const DEFAULT_STORES=[
@@ -350,6 +355,9 @@ function storesCfg(){return STORES_CFG||DEFAULT_STORES;}
 function storeCfg(st){return storesCfg().find(x=>x.store===st)||null;}
 function printersOf(st){const c=storeCfg(st);return c&&Array.isArray(c.printers)?c.printers.filter(p=>p&&(p.short||p.model)):[];}
 function pShort(p){return p.short||p.model;}
+/* 限定門市的品項：models＝{店名:[型號]}；只有登記了型號的店看得到。舊的 perInk 讀門市資料的 inks */
+function modelsOf(it,st){if(it.perStore)return ((it.models||{})[st]||[]).filter(Boolean);if(it.perInk)return inksOf(st);return null;}
+function visibleFor(it,st){const m=modelsOf(it,st);return m===null||m.length>0;}
 function inksOf(st){const c=storeCfg(st);return c&&Array.isArray(c.inks)?c.inks.filter(Boolean):[];}
 function activeItems(){return (ITEMS||DEFAULT_ITEMS).filter(i=>i.active!==false);}
 function itemById(id){return (ITEMS||DEFAULT_ITEMS).find(i=>i.id===id);}
@@ -404,17 +412,15 @@ function vApply(){
   h+=`<div class="card"><h2>要申請哪些耗材<small>按 ＋ 選數量</small></h2>`;
   if(!items.length){h+=`<div class="empty">總部還沒設定任何耗材品項</div>`;}
   let lastCat=null;
-  items.forEach(it=>{
+  items.filter(it=>visibleFor(it,MY_STORE)).forEach(it=>{
     const cat=it.cat||'其他';
     if(cat!==lastCat){h+=`<div class="cat">${esc(cat)}</div>`;lastCat=cat;}
     const op=optsOf(it), prs=it.perPrinter?printersOf(MY_STORE):[];
-    if(it.perInk){
-      const ik=inksOf(MY_STORE);
-      if(ik.length)ik.forEach((m,k)=>{
+    if(modelsOf(it,MY_STORE)!==null){
+      modelsOf(it,MY_STORE).forEach((m,k)=>{
         if(op.length){h+=`<div class="irow ihead"><div class="iname"><b>${esc(it.name)}・${esc(m)}</b></div></div>`;op.forEach((o,j)=>{h+=rowHtml(it.id+'@i'+k+'#'+j,o,'',it.unit,true);});}
         else h+=rowHtml(it.id+'@i'+k,it.name+'・'+m,it.note,it.unit,false);
       });
-      else h+=rowHtml(it.id,it.name,'型號未登記：請在下面「備註」寫墨水或印表機型號',it.unit,false);
     }else if(prs.length){
       prs.forEach((pr,pi)=>{
         h+=`<div class="irow ihead"><div class="iname"><b>${esc(it.name)}・${esc(pShort(pr))}</b><div>${esc(pr.model||'')}${pr.cons?`｜碳粉型號 <b class="cons">${esc(pr.cons)}</b>`:''}</div></div></div>`;
@@ -471,14 +477,12 @@ function cartLines(){
   const out=[];
   activeItems().forEach(i=>{
     const op=optsOf(i), prs=i.perPrinter?printersOf(MY_STORE):[];
-    if(i.perInk){
-      const ik=inksOf(MY_STORE);
-      if(ik.length)ik.forEach((m,k)=>{
-        const base={id:i.id,ink:m,unit:i.unit||''};
+    if(modelsOf(i,MY_STORE)!==null){
+      modelsOf(i,MY_STORE).forEach((m,k)=>{
+        const base={id:i.id,model:m,unit:i.unit||''};
         if(op.length)op.forEach((o,j)=>{const q=CART[i.id+'@i'+k+'#'+j];if(q)out.push({...base,key:i.id+'@'+m+'#'+o,opt:o,name:i.name+' '+m+'（'+o+'）',qty:q});});
         else{const q=CART[i.id+'@i'+k];if(q)out.push({...base,key:i.id+'@'+m,name:i.name+' '+m,qty:q});}
       });
-      else if(CART[i.id])out.push({id:i.id,key:i.id,name:i.name+'（型號未登記）',unit:i.unit||'',qty:CART[i.id]});
     }
     else if(prs.length){
       prs.forEach((pr,pi)=>{
@@ -643,8 +647,54 @@ function sumHtml(){
   let h=`<div class="sum"><h3>🛒 待訂貨彙總<small>${pend.length} 張申請合計，照這個下訂</small></h3>`;
   h+=rows.map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(x.unit)}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
   if(remarks)h+=`<div class="hint" style="margin-top:6px">另有 ${remarks} 張附備註，請看下面的單子。</div>`;
-  h+=`<div class="rq-act"><button class="btn blu sm" onclick="askBatchOrder()">這 ${pend.length} 張全部標記「已訂貨」</button></div></div>`;
+  h+=`<div class="rq-act"><button class="btn sm" onclick="openLine()">📋 複製 LINE 訂購訊息</button><button class="btn blu sm" onclick="askBatchOrder()">這 ${pend.length} 張全部標記「已訂貨」</button></div></div>`;
   return h;
+}
+/* ── LINE 訂購訊息：依店點列出 品名＋型號＋顏色×數量，給業務 ── */
+let LINE_SEL=null, LINE_ADDR=false;
+function lineGroup(x){return x.other?'__other':(x.id||x.name);}
+function lineGroupName(g,x){if(g==='__other')return '其他（門市自填）';const it=itemById(g);return it?it.name:(x.name||g);}
+function lineDefault(g){if(g==='__other')return false;const it=itemById(g);return !!(it&&(it.perPrinter||it.perStore||it.perInk));}
+function linePending(){return REQS.filter(r=>r.status==='已申請'&&(FILT.store==='all'||r.store===FILT.store));}
+function lineText(){
+  const pend=linePending(), by={};
+  pend.forEach(r=>(r.items||[]).forEach(x=>{
+    if(!x.qty||!LINE_SEL[lineGroup(x)])return;
+    let t;
+    if(x.other)t=x.name;
+    else{const nm=lineGroupName(lineGroup(x),x), md=x.model||x.ink||x.printer||'';t=md?[nm,md,x.opt||''].filter(Boolean).join(' '):x.name;}
+    const k=t+'|'+(x.unit||'');
+    (by[r.store]=by[r.store]||{})[k]=(by[r.store][k]||{t,u:x.unit||'',q:0});by[r.store][k].q+=x.qty;
+  }));
+  const st=Object.keys(by).sort((a,b)=>storeIdx(a)-storeIdx(b));
+  if(!st.length)return '';
+  const d=new Date();
+  let out=`【倚盟電訊 耗材訂購】${d.getMonth()+1}/${d.getDate()}`;
+  st.forEach(s=>{
+    out+=`\n■ ${s}`;
+    if(LINE_ADDR){const c=storeCfg(s);if(c&&c.addr)out+=`\n（${c.addr}）`;}
+    Object.values(by[s]).forEach(v=>{out+=`\n・${v.t} ×${v.q}${v.u&&!/^\d/.test(v.u)?v.u:''}`;});
+  });
+  return out;
+}
+function openLine(){
+  const groups={};
+  linePending().forEach(r=>(r.items||[]).forEach(x=>{if(x.qty){const g=lineGroup(x);groups[g]=groups[g]||lineGroupName(g,x);}}));
+  if(!LINE_SEL)LINE_SEL={};
+  Object.keys(groups).forEach(g=>{if(LINE_SEL[g]===undefined)LINE_SEL[g]=lineDefault(g);});
+  openOv(`<h3>LINE 訂購訊息</h3>
+    <div class="hint">勾要給這位業務的品項，下面的文字會跟著變。</div>
+    <div class="lsel">${Object.keys(groups).map(g=>`<label class="chk"><input type="checkbox" ${LINE_SEL[g]?'checked':''} onchange="LINE_SEL['${esc(g)}']=this.checked;updLine()"> ${esc(groups[g])}</label>`).join('')}
+    <label class="chk" style="margin-top:10px"><input type="checkbox" ${LINE_ADDR?'checked':''} onchange="LINE_ADDR=this.checked;updLine()"> 附上各店地址</label></div>
+    <textarea class="inp" id="lineTxt" readonly style="min-height:220px;margin-top:12px;font-size:15px;line-height:1.6"></textarea>
+    <div class="ov-foot"><button class="btn" onclick="closeOv()">關閉</button><button class="btn pri" id="lineBtn" onclick="copyLine()">📋 複製</button></div>`);
+  updLine();
+}
+function updLine(){const t=lineText();$('lineTxt').value=t||'（沒有勾選的品項）';$('lineBtn').disabled=!t;}
+function copyLine(){
+  const t=lineText();if(!t)return;
+  const done=()=>toast('已複製，貼到 LINE 給業務就好');
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done));else fallbackCopy(t,done);
 }
 function adminActs(r){
   const id=r.id;let a=[];
@@ -728,7 +778,7 @@ function vItems(){
   if(!all.length)h+=`<div class="empty">還沒有品項，請從上面新增</div>`;
   h+=all.map((it,i)=>`<div class="mrow${it.active===false?' off':''}">
     <div class="mord"><button onclick="mvItem(${i},-1)" ${i?'':'disabled'} aria-label="上移">▲</button><button onclick="mvItem(${i},1)" ${i<all.length-1?'':'disabled'} aria-label="下移">▼</button></div>
-    <div class="mname"><b>${esc(it.name)}</b>${it.cat?`<span class="tag">${esc(it.cat)}</span>`:''}${it.active===false?'<span class="tag g">停用</span>':''}<div>單位：${esc(it.unit||'—')}${it.perPrinter?'・依各店印表機':''}${optsOf(it).length?'・顏色／規格：'+optsOf(it).map(esc).join('、'):''}${it.note?'・'+esc(it.note):''}</div></div>
+    <div class="mname"><b>${esc(it.name)}</b>${it.cat?`<span class="tag">${esc(it.cat)}</span>`:''}${it.active===false?'<span class="tag g">停用</span>':''}<div>單位：${esc(it.unit||'—')}${it.perPrinter?'・依各店印表機':''}${it.perStore?'・限：'+(Object.keys(it.models||{}).filter(k=>(it.models[k]||[]).length).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(k=>esc(k.replace('店',''))+'（'+it.models[k].map(esc).join('、')+'）').join('、')||'尚未登記任何門市'):''}${optsOf(it).length?'・顏色／規格：'+optsOf(it).map(esc).join('、'):''}${it.note?'・'+esc(it.note):''}</div></div>
     <button class="btn sm ghost" onclick="editItem(${i})">編輯</button>
     <button class="btn sm ${it.active===false?'ok':'ghost'}" onclick="togItem(${i})">${it.active===false?'啟用':'停用'}</button>
   </div>`).join('');
@@ -758,6 +808,8 @@ function editItem(i){
     <label class="lab" for="eCat">分類</label><input class="inp" id="eCat" maxlength="10" value="${esc(it.cat||'')}">
     <label class="lab" for="eOpts">顏色／規格<span>逗號分開，空白＝不分</span></label><input class="inp" id="eOpts" maxlength="80" value="${esc(optsOf(it).join(','))}">
     <label class="chk"><input type="checkbox" id="ePer" ${it.perPrinter?'checked':''}> 依各店印表機分開（印表機在「門市資料」設定）</label>
+    <label class="chk"><input type="checkbox" id="ePS" ${it.perStore?'checked':''} onchange="$('psBox').style.display=this.checked?'':'none'"> 只給有登記型號的門市（墨水、色帶這類各店型號不同的）</label>
+    <div id="psBox" style="${it.perStore?'':'display:none'}">${STORES.map((st,k)=>`<div class="orow"><span style="flex:none;width:64px;font-weight:700">${esc(st.replace('店',''))}</span><input class="inp" id="psm${k}" maxlength="80" placeholder="型號，不知道就空白（門市看不到）" value="${esc(((it.models||{})[st]||[]).join(','))}" aria-label="${esc(st)} 型號"></div>`).join('')}<div class="hint" style="margin-top:6px">一間店有多個型號用逗號分開。空白的店看不到這個品項，要訂可以用「其他」。</div></div>
     <label class="lab" for="eINote">說明</label><input class="inp" id="eINote" maxlength="40" value="${esc(it.note||'')}">
     <div class="hint" style="margin-top:8px">改名、改顏色只影響之後的申請，已送出的單子維持原本的內容。</div>
     <div class="ov-foot"><button class="btn dng" onclick="delItem(${i})">刪除</button><button class="btn" onclick="closeOv()">取消</button><button class="btn pri" onclick="saveItem(${i})">儲存</button></div>`);
@@ -765,7 +817,8 @@ function editItem(i){
 async function saveItem(i){
   const name=$('eName').value.trim();if(!name){toast('品名不能空白');return;}
   const a=(ITEMS||DEFAULT_ITEMS).map(x=>({...x}));
-  Object.assign(a[i],{name,unit:$('eUnit').value.trim(),cat:$('eCat').value.trim(),note:$('eINote').value.trim(),opts:parseOpts($('eOpts').value),perPrinter:$('ePer').checked});
+  Object.assign(a[i],{name,unit:$('eUnit').value.trim(),cat:$('eCat').value.trim(),note:$('eINote').value.trim(),opts:parseOpts($('eOpts').value),perPrinter:$('ePer').checked,perStore:$('ePS').checked});
+  if($('ePS').checked){const m={};STORES.forEach((st,k)=>{const v=[...new Set($('psm'+k).value.split(/[,，、]+/).map(x=>x.trim().replace(/[#@'"\\<>]/g,'')).filter(Boolean))];if(v.length)m[st]=v;});a[i].models=m;delete a[i].perInk;}
   if(await saveItems(a))closeOv();
 }
 async function delItem(i){
@@ -800,11 +853,11 @@ function vStats(){
 
 /* ══════════ 總部：門市資料（抬頭、統編、地址、印表機） ══════════ */
 function vStores(){
-  let h=`<div class="note info">這裡的印表機、墨水型號決定門市申請碳粉匣、墨水時看到哪些型號；抬頭、統編、地址會顯示在申請單上，按「📋 複製」可以直接貼給廠商。${!STORES_EXIST&&STORES_CFG===null?'<br>（目前顯示預設值，第一次儲存後才會寫進資料庫）':''}</div>`;
+  let h=`<div class="note info">這裡的印表機決定門市申請碳粉匣時看到哪些型號（墨水、色帶等各店型號在「品項管理」設定）；抬頭、統編、地址會顯示在申請單上，按「📋 複製」可以直接貼給廠商。${!STORES_EXIST&&STORES_CFG===null?'<br>（目前顯示預設值，第一次儲存後才會寫進資料庫）':''}</div>`;
   storesCfg().forEach((c,i)=>{
     h+=`<div class="card"><h2>${esc(c.store)}<small>統編 ${esc(c.taxId||'—')}</small></h2>
       <div class="rq-meta" style="margin-top:0">${esc(c.company||'')}<br>${esc(c.addr||'')}</div>
-      <div class="plist">${(c.printers||[]).map(p=>`<div class="prow"><b>${esc(pShort(p))}</b><span>${esc(p.model||'')}</span><span class="${p.cons?'':'unk'}">碳粉型號：${p.cons?esc(p.cons):'未登記'}</span></div>`).join('')||'<div class="hint">沒有登記印表機</div>'}<div class="prow"><b>墨水</b><span class="${inksOf(c.store).length?'':'unk'}">${inksOf(c.store).length?inksOf(c.store).map(esc).join('、'):'型號未登記'}</span></div></div>
+      <div class="plist">${(c.printers||[]).map(p=>`<div class="prow"><b>${esc(pShort(p))}</b><span>${esc(p.model||'')}</span><span class="${p.cons?'':'unk'}">碳粉型號：${p.cons?esc(p.cons):'未登記'}</span></div>`).join('')||'<div class="hint">沒有登記印表機</div>'}${activeItems().filter(it=>it.perStore).map(it=>{const m=modelsOf(it,c.store);return `<div class="prow"><b>${esc(it.name)}</b><span class="${m.length?'':'unk'}">${m.length?m.map(esc).join('、'):'未登記（門市看不到，要訂用「其他」）'}</span></div>`;}).join('')}</div>
       <div class="rq-act"><button class="btn sm ghost" onclick="copyCo('${esc(c.store)}')">📋 複製抬頭</button><button class="btn sm pri" onclick="editStore(${i})">編輯</button></div></div>`;
   });
   return h;
@@ -816,8 +869,7 @@ function editStore(i){
     <label class="lab" for="sCo">公司抬頭</label><input class="inp" id="sCo" maxlength="40" value="${esc(c.company||'')}">
     <label class="lab" for="sTax">統一編號</label><input class="inp" id="sTax" maxlength="8" inputmode="numeric" value="${esc(c.taxId||'')}">
     <label class="lab" for="sAddr">地址</label><input class="inp" id="sAddr" maxlength="80" value="${esc(c.addr||'')}">
-    <label class="lab" for="sInk">墨水型號<span>噴墨印表機用的，多個用逗號分開；空白＝門市申請時寫在備註</span></label><input class="inp" id="sInk" maxlength="80" value="${esc(inksOf(c.store).join(','))}">
-    <label class="lab">印表機<span>簡稱會出現在碳粉匣名稱上，例：碳粉匣 M480（黑）</span></label>
+        <label class="lab">印表機<span>簡稱會出現在碳粉匣名稱上，例：碳粉匣 M480（黑）</span></label>
     <div id="prBox">${prRows()}</div>
     <button class="btn sm" style="margin-top:8px" onclick="prSync();EDIT_PR.push({model:'',short:'',cons:''});$('prBox').innerHTML=prRows()">＋ 加一台印表機</button>
     <div class="ov-foot"><button class="btn" onclick="closeOv()">取消</button><button class="btn pri" onclick="saveStore(${i})">儲存</button></div>`);
@@ -835,7 +887,7 @@ async function saveStore(i){
   const pr=EDIT_PR.filter(p=>p.model||p.short).map(p=>({...p,short:p.short||p.model}));
   const sh=pr.map(p=>p.short);if(new Set(sh).size!==sh.length){toast('同一間店兩台印表機的簡稱不能一樣');return;}
   const a=storesCfg().map(x=>({...x}));
-  Object.assign(a[i],{company:$('sCo').value.trim(),taxId:$('sTax').value.trim(),addr:$('sAddr').value.trim(),printers:pr,inks:[...new Set($('sInk').value.split(/[,，、]+/).map(x=>x.trim().replace(/[#@'"\\<>]/g,'')).filter(Boolean))]});
+  Object.assign(a[i],{company:$('sCo').value.trim(),taxId:$('sTax').value.trim(),addr:$('sAddr').value.trim(),printers:pr});
   if(!fbReady()){toast('還在連線，請稍候');return;}
   try{await FB.saveStores(a);closeOv();toast('已儲存');}catch(e){toast('❌ 儲存失敗，請再試一次');console.error(e);}
 }
