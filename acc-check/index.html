@@ -311,6 +311,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     m.forEach(function(t){ var v=t.replace(/[^0-9e]/g,""); if(v&&out.indexOf(v)<0) out.push(v) });
     return out;
   }
+  // 帶單位的規格數字：10000mAh、35W、128GB、1.3m…
+  // 機型號碼只抓 2~3 位，容量這種 4~5 位數會被忽略，所以要另外抓
+  function specsOf(sp){
+    var out=[], m=sp.match(/\d+(?:\.\d+)?\s*(?:mah|gb|tb|w|mm|cm|m)(?![a-z0-9])/g)||[];
+    m.forEach(function(t){ var v=t.replace(/\s+/g,""); if(out.indexOf(v)<0) out.push(v) });
+    return out;
+  }
   var RE_PM=/\bpro\s*max\b/, RE_PRO=/\bpro\b/, RE_AIR=/\bair\b/,
       RE_PLUS=/\bplus\b/, RE_MINI=/\bmini\b/;
 
@@ -332,6 +339,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     if(na.length&&nb.length){
       var hit=na.some(function(n){ return nb.indexOf(n)>=0 });
       if(!hit) s*=0.5;
+    }
+    // 規格對不上就不是同一支（10000mAh vs 5000mAh、128GB vs 256GB）
+    var sa=specsOf(xa), sb=specsOf(xb);
+    if(sa.length&&sb.length){
+      var shit=sa.some(function(n){ return sb.indexOf(n)>=0 });
+      if(!shit) s*=0.4;
     }
     // 顏色：品名裡有就用品名的；沒有才拿 SCMS 的顏色欄來補（「不分色」不算顏色）
     var ca=colorOf(a), cb=colorOf(b);
