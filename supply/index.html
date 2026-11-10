@@ -185,7 +185,13 @@ textarea.inp{min-height:68px;resize:vertical}
 .seg button{border:0;background:none;border-radius:9px;padding:6px 11px;font-size:13.5px;color:var(--muted);font-weight:700}
 .seg button.on{background:var(--peach);color:var(--hot-d)}
 .dd{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px;font-weight:700;color:var(--ink)}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.kpi.k4 b{color:#7A3FA0}
+.vtag{font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px}
+.v-direct{background:#EEF3FB;color:#1D5FA8}
+.v-hq{background:#F3EAF8;color:#7A3FA0}
+.p-已寄出{background:#F3EAF8;color:#7A3FA0}
+.sumH{border-color:#D3B3E6;background:#FCF8FE}
 .kpi{background:#fff;border:1px solid var(--card);border-radius:14px;padding:10px 12px;cursor:pointer;text-align:left;font-family:inherit}
 .kpi span{display:block;font-size:12px;color:var(--muted)}
 .kpi b{font-size:24px;font-weight:900;font-variant-numeric:tabular-nums}
@@ -254,6 +260,7 @@ table.st td.z{color:#D5CBBF}
   .btitle h1{font-size:17px}
   .card{padding:14px 13px;border-radius:16px}
   .kpi b{font-size:21px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
   .addf{grid-template-columns:1fr 1fr}
   .addf .f-name{grid-column:1/-1}
   .addf .f-note{grid-column:1/-1}
@@ -300,12 +307,12 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.09g';
+const VER='2026.11.10b';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨'];
 const DEFAULT_ITEMS=[
-  {id:'toner',name:'碳粉匣',unit:'個',cat:'事務用品',note:'',opts:['黑','藍','紅','黃'],perPrinter:true,active:true},
-  {id:'a4',name:'A4 影印紙',unit:'包',cat:'事務用品',note:'',active:true},
+  {id:'toner',name:'碳粉匣',unit:'個',cat:'事務用品',note:'',opts:['黑','藍','紅','黃'],perPrinter:true,via:'direct',active:true},
+  {id:'a4',name:'A4 影印紙',unit:'包',cat:'事務用品',note:'',via:'direct',active:true},
   {id:'ink',name:'墨水',unit:'瓶',cat:'事務用品',note:'',perStore:true,models:{'鼎山店':['Brother D60BK'],'陽明店':['L3110']},active:true},
   {id:'ribbon',name:'收銀機色帶',unit:'個',cat:'事務用品',note:'',perStore:true,models:{'鼎山店':['Winpos WP-103S']},active:true}
 ];
@@ -365,6 +372,16 @@ function modelsOf(it,st){if(it.perStore)return ((it.models||{})[st]||[]).filter(
 function visibleFor(it,st){const m=modelsOf(it,st);return m===null||m.length>0;}
 function inksOf(st){const c=storeCfg(st);return c&&Array.isArray(c.inks)?c.inks.filter(Boolean):[];}
 function activeItems(){return (ITEMS||DEFAULT_ITEMS).filter(i=>i.active!==false);}
+/* 配送方式：direct＝廠商直送門市（門市申請→總部訂貨→門市收到）；hq＝總部統一訂、再寄到各店（門市申請→總部寄出→門市收到） */
+function viaOfItem(it){return it&&it.via==='hq'?'hq':it&&it.via==='direct'?'direct':(it&&(it.perStore||it.perInk)?'hq':'direct');}
+function viaOfLine(x){if(x.other)return 'hq';return viaOfItem(itemById(x.id));}
+function viaOf(r){return r.via==='hq'?'hq':'direct';}
+const VIA_NAME={direct:'廠商直送',hq:'總部寄出'};
+function isPendD(r){return r.status==='已申請'&&viaOf(r)==='direct';}
+function isPendH(r){return r.status==='已申請'&&viaOf(r)==='hq';}
+function isWait(r){return r.status==='已訂貨'||r.status==='已寄出';}
+/* 單位顯示：去掉前面的數字（品項單位設成「1捲」時，3 捲不會變成「×31捲」） */
+function uD(u){return String(u||'').replace(/^\s*\d+\s*/,'');}
 function itemById(id){return (ITEMS||DEFAULT_ITEMS).find(i=>i.id===id);}
 function storeIdx(s){const i=STORES.indexOf(s);return i<0?99:i;}
 function fbReady(){return !!window.FB;}
@@ -381,10 +398,10 @@ function initHeader(){
 /* ── 分頁 ── */
 function tabsDef(){
   if(IS_ADMIN){
-    const n1=REQS.filter(r=>r.status==='已申請').length, n2=REQS.filter(r=>r.status==='已訂貨').length;
+    const n1=REQS.filter(r=>r.status==='已申請').length, n2=REQS.filter(isWait).length;
     return [['list','申請單',n1+n2],['items','品項管理',0],['stats','用量統計',0],['stores','門市資料',0]];
   }
-  const n=REQS.filter(r=>r.status==='已申請'||r.status==='已訂貨').length;
+  const n=REQS.filter(r=>r.status==='已申請'||isWait(r)).length;
   return [['apply','申請耗材',0],['mine','我的申請',n]];
 }
 function renderTabs(){
@@ -526,7 +543,7 @@ function openConfirm(){
   REQS.filter(r=>r.status==='已申請').forEach(r=>(r.items||[]).forEach(x=>{if(keys.has(x.key||x.id))dup.push(`${x.name}（${fmtD(r.createdTs)} 已申請 ${x.qty}${x.unit||''}）`);}));
   let h=`<h3>確認送出申請</h3>
     <div class="hint" style="margin-bottom:8px">${esc(MY_STORE)}・申請人 ${esc(who)}</div>
-    <div class="cfl">${ls.map(x=>`<div><span>${esc(x.name)}</span><b>× ${x.qty} ${esc(x.unit)}</b></div>`).join('')||'<div><span class="hint">（沒有選品項，只有備註）</span></div>'}</div>`;
+    <div class="cfl">${ls.map(x=>`<div><span>${esc(x.name)}</span><b>× ${x.qty} ${esc(uD(x.unit))}</b></div>`).join('')||'<div><span class="hint">（沒有選品項，只有備註）</span></div>'}</div>`;
   if(remark)h+=`<div class="rq-meta">備註：${esc(remark)}</div>`;
   if(dup.length)h+=`<div class="note warn" style="margin:12px 0 0">⚠️ 這些品項之前申請過、總部還沒訂貨：<br>${dup.map(esc).join('<br>')}<br>確定還要再申請一次嗎？</div>`;
   h+=`<div class="ov-foot"><button class="btn" onclick="closeOv()">再改改</button><button class="btn pri" id="cfBtn" onclick="doSend()">確定送出</button></div>`;
@@ -535,14 +552,19 @@ function openConfirm(){
 async function doSend(){
   if(SENDING)return;
   if(!fbReady()){toast('還在連線，請幾秒後再按一次');return;}
-  const ls=cartLines(), who=$('fWho').value.trim(), remark=$('fRemark').value.trim();
+  const ls=cartLines(), who=$('fWho').value.trim(), remark=$('fRemark').value.trim();let docs=null;
   SENDING=true;const b=$('cfBtn');if(b){b.disabled=true;b.textContent='送出中…';}updBar();
   try{
-    await FB.add({store:MY_STORE,storeKey:SSO.storeKey||'',items:ls,by:who,remark,status:'已申請',
-      createdTs:Date.now(),actingAdmin:!!SSO.actingAdmin});
+    const base={store:MY_STORE,storeKey:SSO.storeKey||'',by:who,remark,status:'已申請',createdTs:Date.now(),actingAdmin:!!SSO.actingAdmin};
+    const g={direct:ls.filter(x=>viaOfLine(x)==='direct'),hq:ls.filter(x=>viaOfLine(x)==='hq')};
+    docs=[];
+    if(g.direct.length)docs.push({...base,via:'direct',items:g.direct});
+    if(g.hq.length)docs.push({...base,via:'hq',items:g.hq});
+    if(!docs.length)docs.push({...base,via:'hq',items:[]});   /* 只有備註 */
+    await FB.addMany(docs);
     if(!SSO.actingAdmin)pushTo('admin','🧻 新耗材申請',`${MY_STORE} ${who}：${itemsBrief(ls)||'（只有備註）'}${remark?'｜'+remark.slice(0,30):''}`);
     lsSet('sup:who:'+MY_STORE,who);lsSet('sup:draft:'+MY_STORE,'');
-    CART={};OTHERS=[{name:'',qty:0,unit:''}];SENDING=false;closeOv();toast('✅ 已送出，總部會看到');go('mine');
+    CART={};OTHERS=[{name:'',qty:0,unit:''}];SENDING=false;closeOv();toast(docs&&docs.length>1?'✅ 已送出（廠商直送、總部寄出分成 2 張追蹤）':'✅ 已送出，總部會看到');go('mine');
   }catch(e){
     SENDING=false;if(b){b.disabled=false;b.textContent='重新送出';}updBar();
     toast('❌ 送出失敗，資料還在，請檢查網路後再按一次',4000);console.error(e);
@@ -552,22 +574,23 @@ async function doSend(){
 /* ══════════ 申請單卡片（門市、總部共用） ══════════ */
 function flowHtml(r){
   if(r.status==='已取消')return '';
-  const idx=FLOW.indexOf(r.status), ts=[r.createdTs,r.orderedTs,r.shippedTs];
+  const hq=viaOf(r)==='hq', F=hq?['已申請','已寄出','已出貨']:FLOW;
+  const idx=F.indexOf(r.status), ts=[r.createdTs,hq?r.sentTs:r.orderedTs,r.shippedTs];
   let h='<div class="flow">';
-  FLOW.forEach((s,i)=>{
+  F.forEach((s,i)=>{
     const cls=i<idx||(i===idx&&i===2)?'done':(i===idx?'cur':'');
     if(i)h+=`<div class="bar${i<=idx?' done':''}"></div>`;
-    h+=`<div class="dot ${cls}"><i>${i<=idx?'✓':''}</i>${s==='已申請'?'門市申請':s==='已訂貨'?'總部訂貨':'門市收到'}<small>${i<=idx?fmtD(ts[i]):''}</small></div>`;
+    h+=`<div class="dot ${cls}"><i>${i<=idx?'✓':''}</i>${s==='已申請'?'門市申請':s==='已訂貨'?'總部訂貨':s==='已寄出'?'總部寄出':'門市收到'}<small>${i<=idx?fmtD(ts[i]):''}</small></div>`;
   });
   return h+'</div>';
 }
 function rqCard(r,admin){
   let h=`<div class="rq"><div class="rq-top">`;
   if(admin)h+=`<span class="rq-store">${esc(r.store)}</span>`;
-  h+=`<span class="rq-date">${fmtDT(r.createdTs)}</span><span class="pill p-${esc(r.status)}">${esc(r.status==='已申請'?'等待總部訂貨':r.status==='已訂貨'?'已訂貨・等廠商寄到':r.status==='已出貨'?'已到貨':r.status)}</span></div>`;
+  h+=`<span class="rq-date">${fmtDT(r.createdTs)}</span><span class="vtag v-${viaOf(r)}">${VIA_NAME[viaOf(r)]}</span><span class="pill p-${esc(r.status)}">${esc(r.status==='已申請'?(viaOf(r)==='hq'?'等待總部寄出':'等待總部訂貨'):r.status==='已訂貨'?'已訂貨・等廠商寄到':r.status==='已寄出'?'總部已寄出・等收貨':r.status==='已出貨'?'已到貨':r.status)}</span></div>`;
   if(admin){const c=storeCfg(r.store);if(c&&(c.company||c.taxId||c.addr))h+=`<div class="rq-co"><span>${esc(c.company||'')}${c.taxId?`・統編 <b>${esc(c.taxId)}</b>`:''}<br>${esc(c.addr||'')}</span><button class="btn sm ghost" onclick="copyCo('${esc(r.store)}')">📋 複製</button></div>`;}
   h+=flowHtml(r);
-  if((r.items||[]).length)h+=`<div class="rq-items">${r.items.map(x=>`<span class="chip${x.orig!=null&&x.orig!==x.qty?' chg':''}">${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}<b>×${x.qty}</b>${esc(x.unit||'')}${x.orig!=null&&x.orig!==x.qty?` <small>(原 ${x.orig})</small>`:''}</span>`).join('')}</div>`;
+  if((r.items||[]).length)h+=`<div class="rq-items">${r.items.map(x=>`<span class="chip${x.orig!=null&&x.orig!==x.qty?' chg':''}">${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}<b>×${x.qty}</b>${esc(uD(x.unit))}${x.orig!=null&&x.orig!==x.qty?` <small>(原 ${x.orig})</small>`:''}</span>`).join('')}</div>`;
   let meta=[];
   if(r.by)meta.push(`申請人 <b>${esc(r.by)}</b>`);
   if(r.remark)meta.push(`備註：${esc(r.remark)}`);
@@ -593,13 +616,13 @@ function itemsBrief(items){
 function pushTo(owner,title,body){if(fbReady()&&FB.push)FB.push(owner,title,body);}
 function askRecv(id){
   const r=REQS.find(x=>x.id===id);if(!r)return;
-  openOv(`<h3>確認收到這些耗材？</h3><div class="cfl">${(r.items||[]).filter(x=>x.qty).map(x=>`<div><span>${esc(x.name)}</span><b>× ${x.qty} ${esc(x.unit||'')}</b></div>`).join('')}</div>
+  openOv(`<h3>確認收到這些耗材？</h3><div class="cfl">${(r.items||[]).filter(x=>x.qty).map(x=>`<div><span>${esc(x.name)}</span><b>× ${x.qty} ${esc(uD(x.unit))}</b></div>`).join('')}</div>
     <div class="hint" style="margin-top:8px">東西有少或寄錯，先不要按，直接跟總部說。</div>
     <div class="ov-foot"><button class="btn" onclick="closeOv()">還沒收到</button><button class="btn ok" onclick="closeOv();setSt('${id}','已出貨')">都收到了</button></div>`);
 }
 function storeActs(r){
   if(r.status==='已申請')return `<button class="btn sm dng" onclick="askCancel('${r.id}',false)">取消這張申請</button>`;
-  if(r.status==='已訂貨')return `<button class="btn sm ok" onclick="askRecv('${r.id}')">✅ 已收到</button>`;
+  if(isWait(r))return `<button class="btn sm ok" onclick="askRecv('${r.id}')">✅ 已收到</button>`;
   return '';
 }
 
@@ -608,33 +631,38 @@ function vMine(){
   if(!REQS_LOADED)return `<div class="card"><div class="empty">讀取中…</div></div>`;
   const list=REQS.slice().sort((a,b)=>b.createdTs-a.createdTs);
   if(!list.length)return `<div class="card"><div class="empty">還沒有申請過耗材<br><br><button class="btn pri" onclick="go('apply')">去申請</button></div></div>`;
-  let h=`<div class="card"><h2>我的申請<small>總部訂貨後，廠商會直接寄到門市；收到請按「已收到」</small></h2>`;
+  let h=`<div class="card"><h2>我的申請<small>總部訂貨或寄出時會通知；東西收到請按「已收到」</small></h2>`;
   h+=list.slice(0,SHOW_N).map(r=>rqCard(r,false)).join('');
   if(list.length>SHOW_N)h+=`<div style="text-align:center"><button class="btn" onclick="SHOW_N+=30;render()">顯示更多（還有 ${list.length-SHOW_N} 張）</button></div>`;
   return h+'</div>';
 }
 
 /* ══════════ 總部：申請單 ══════════ */
-const ST_OPTS=[['pending','待處理'],['已申請','待訂貨'],['已訂貨','待到貨'],['已出貨','已到貨'],['已取消','已取消'],['all','全部']];
+const ST_OPTS=[['pending','待處理'],['pendD','待訂貨'],['pendH','待寄出'],['wait','待到貨'],['已出貨','已到貨'],['已取消','已取消'],['all','全部']];
 function vList(){
   if(!REQS_LOADED)return `<div class="card"><div class="empty">讀取中…</div></div>`;
-  const n1=REQS.filter(r=>r.status==='已申請').length, n2=REQS.filter(r=>r.status==='已訂貨').length;
+  const n1=REQS.filter(isPendD).length, nH=REQS.filter(isPendH).length, n2=REQS.filter(isWait).length;
   const mk=monthKey(Date.now()), n3=REQS.filter(r=>r.status==='已出貨'&&r.shippedTs&&monthKey(r.shippedTs)===mk).length;
   let h=`<div class="kpis">
-    <button class="kpi k1" onclick="setF('st','已申請')"><span>待訂貨</span><b>${n1}</b></button>
-    <button class="kpi k2" onclick="setF('st','已訂貨')"><span>已訂貨・待到貨</span><b>${n2}</b></button>
+    <button class="kpi k1" onclick="setF('st','pendD')"><span>待訂貨（廠商直送）</span><b>${n1}</b></button>
+    <button class="kpi k4" onclick="setF('st','pendH')"><span>待寄出（總部寄）</span><b>${nH}</b></button>
+    <button class="kpi k2" onclick="setF('st','wait')"><span>待到貨</span><b>${n2}</b></button>
     <button class="kpi k3" onclick="setF('st','已出貨')"><span>本月已到貨</span><b>${n3}</b></button></div>`;
   h+=`<div class="filt"><div class="seg">${ST_OPTS.map(([k,t])=>`<button class="${FILT.st===k?'on':''}" onclick="setF('st','${k}')">${t}</button>`).join('')}</div>
     <select class="dd" onchange="setF('store',this.value)" aria-label="門市"><option value="all">全部門市</option>${STORES.map(s=>`<option ${FILT.store===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
   /* 待訂貨彙總：總部一次下訂用 */
-  if((FILT.st==='pending'||FILT.st==='已申請')&&n1)h+=sumHtml();
+  if((FILT.st==='pending'||FILT.st==='pendD')&&REQS.some(r=>isPendD(r)&&(FILT.store==='all'||r.store===FILT.store)))h+=sumHtml();
+  if((FILT.st==='pending'||FILT.st==='pendH')&&REQS.some(r=>isPendH(r)&&(FILT.store==='all'||r.store===FILT.store)))h+=sumHtmlH();
   const list=REQS.filter(r=>{
     if(FILT.store!=='all'&&r.store!==FILT.store)return false;
-    if(FILT.st==='pending')return r.status==='已申請'||r.status==='已訂貨';
+    if(FILT.st==='pending')return r.status==='已申請'||isWait(r);
+    if(FILT.st==='pendD')return isPendD(r);
+    if(FILT.st==='pendH')return isPendH(r);
+    if(FILT.st==='wait')return isWait(r);
     if(FILT.st==='all')return true;
     return r.status===FILT.st;
   }).sort((a,b)=>{
-    if(FILT.st==='pending'){const o={'已申請':0,'已訂貨':1};if(o[a.status]!==o[b.status])return o[a.status]-o[b.status];return a.createdTs-b.createdTs;}
+    if(FILT.st==='pending'){const o={'已申請':0,'已訂貨':1,'已寄出':1};if(o[a.status]!==o[b.status])return o[a.status]-o[b.status];return a.createdTs-b.createdTs;}
     return (b.shippedTs||b.createdTs)-(a.shippedTs||a.createdTs);
   });
   if(!list.length)h+=`<div class="card"><div class="empty">${FILT.st==='pending'?'🎉 目前沒有待處理的申請':'沒有符合的申請單'}</div></div>`;
@@ -645,8 +673,26 @@ function vList(){
   return h;
 }
 function setF(k,v){FILT[k]=v;SHOW_N=30;render();}
+function sumRows(pend){
+  const m={};
+  pend.forEach(r=>(r.items||[]).forEach(x=>{
+    const k=x.key||(x.other?'o:'+x.name:x.id)||x.name;
+    if(!m[k])m[k]={name:x.name,other:!!x.other,unit:x.unit||'',qty:0,by:{},cons:new Set()};
+    if(x.cons)m[k].cons.add(x.cons);
+    m[k].qty+=x.qty;m[k].by[r.store]=(m[k].by[r.store]||0)+x.qty;
+  }));
+  return Object.values(m).sort((a,b)=>b.qty-a.qty).map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(uD(x.unit))}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
+}
+function sumHtmlH(){
+  const pend=REQS.filter(r=>isPendH(r)&&(FILT.store==='all'||r.store===FILT.store));
+  const remarks=pend.filter(r=>r.remark).length;
+  let h=`<div class="sum sumH"><h3>📦 待寄出彙總<small>${pend.length} 張，總部要準備的量（不夠再去訂）</small></h3>`+sumRows(pend);
+  if(remarks)h+=`<div class="hint" style="margin-top:6px">另有 ${remarks} 張附備註，請看下面的單子。</div>`;
+  h+=`<div class="hint" style="margin-top:6px">寄出時在下面每張單按「標記已寄出」，門市會收到通知。</div></div>`;
+  return h;
+}
 function sumHtml(){
-  const pend=REQS.filter(r=>r.status==='已申請'&&(FILT.store==='all'||r.store===FILT.store));
+  const pend=REQS.filter(r=>isPendD(r)&&(FILT.store==='all'||r.store===FILT.store));
   const m={};
   pend.forEach(r=>(r.items||[]).forEach(x=>{
     const k=x.key||(x.other?'o:'+x.name:x.id)||x.name;
@@ -656,8 +702,8 @@ function sumHtml(){
   }));
   const rows=Object.values(m).sort((a,b)=>b.qty-a.qty);
   const remarks=pend.filter(r=>r.remark).length;
-  let h=`<div class="sum"><h3>🛒 待訂貨彙總<small>${pend.length} 張申請合計，照這個下訂</small></h3>`;
-  h+=rows.map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(x.unit)}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
+  let h=`<div class="sum"><h3>🛒 待訂貨彙總（廠商直送門市）<small>${pend.length} 張申請合計，照這個下訂</small></h3>`;
+  h+=rows.map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(uD(x.unit))}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
   if(remarks)h+=`<div class="hint" style="margin-top:6px">另有 ${remarks} 張附備註，請看下面的單子。</div>`;
   h+=`<div class="rq-act"><button class="btn sm" onclick="openLine()">📋 複製 LINE 訂購訊息</button><button class="btn blu sm" onclick="askBatchOrder()">這 ${pend.length} 張全部標記「已訂貨」</button></div></div>`;
   return h;
@@ -667,7 +713,7 @@ let LINE_SEL=null, LINE_ADDR=false;
 function lineGroup(x){return x.other?'__other':(x.id||x.name);}
 function lineGroupName(g,x){if(g==='__other')return '其他（門市自填）';const it=itemById(g);return it?it.name:(x.name||g);}
 function lineDefault(g){if(g==='__other')return false;const it=itemById(g);return !!(it&&(it.perPrinter||it.perStore||it.perInk));}
-function linePending(){return REQS.filter(r=>r.status==='已申請'&&(FILT.store==='all'||r.store===FILT.store));}
+function linePending(){return REQS.filter(r=>isPendD(r)&&(FILT.store==='all'||r.store===FILT.store));}
 function lineText(){
   const pend=linePending(), by={};
   pend.forEach(r=>(r.items||[]).forEach(x=>{
@@ -685,7 +731,7 @@ function lineText(){
   st.forEach(s=>{
     out+=`\n■ ${s}`;
     if(LINE_ADDR){const c=storeCfg(s);if(c&&c.addr)out+=`\n（${c.addr}）`;}
-    Object.values(by[s]).forEach(v=>{out+=`\n・${v.t} ×${v.q}${v.u&&!/^\d/.test(v.u)?v.u:''}`;});
+    Object.values(by[s]).forEach(v=>{out+=`\n・${v.t} ×${v.q}${uD(v.u)}`;});
   });
   return out;
 }
@@ -711,31 +757,38 @@ function copyLine(){
 function adminActs(r){
   const id=r.id;let a=[];
   a.push(`<button class="btn sm ghost" onclick="openEdit('${id}')">改數量／備註</button>`);
-  if(r.status==='已申請'){a.push(`<button class="btn sm dng" onclick="askCancel('${id}',true)">取消</button>`);a.push(`<button class="btn sm blu" onclick="setSt('${id}','已訂貨')">標記已訂貨</button>`);}
+  if(r.status==='已申請'){const hq=viaOf(r)==='hq';a.push(`<button class="btn sm ghost" onclick="setVia('${id}','${hq?'direct':'hq'}')">改成${hq?'廠商直送':'總部寄出'}</button>`);a.push(`<button class="btn sm dng" onclick="askCancel('${id}',true)">取消</button>`);a.push(hq?`<button class="btn sm blu" onclick="setSt('${id}','已寄出')">標記已寄出</button>`:`<button class="btn sm blu" onclick="setSt('${id}','已訂貨')">標記已訂貨</button>`);}
+  else if(r.status==='已寄出'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">退回待寄出</button>`);a.push(`<button class="btn sm ok" onclick="setSt('${id}','已出貨')">標記已到貨</button>`);}
   else if(r.status==='已訂貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">退回待訂貨</button>`);a.push(`<button class="btn sm ok" onclick="setSt('${id}','已出貨')">標記已到貨</button>`);}
-  else if(r.status==='已出貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已訂貨')">退回待到貨</button>`);}
+  else if(r.status==='已出貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','${viaOf(r)==='hq'?'已寄出':'已訂貨'}')">退回待到貨</button>`);}
   else if(r.status==='已取消'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">恢復申請</button>`);a.push(`<button class="btn sm dng" onclick="askDel('${id}')">刪除</button>`);}
   return a.join('');
+}
+async function setVia(id,v){
+  if(!fbReady()){toast('還在連線，請稍候');return;}
+  try{await FB.upd(id,{via:v});toast('這張改成「'+VIA_NAME[v]+'」');}catch(e){toast('❌ 更新失敗');console.error(e);}
 }
 async function setSt(id,st){
   if(!fbReady()){toast('還在連線，請稍候');return;}
   const p={status:st};const now=Date.now();
-  if(st==='已申請'){p.orderedTs=null;p.shippedTs=null;p.cancelTs=null;}
+  if(st==='已申請'){p.orderedTs=null;p.sentTs=null;p.shippedTs=null;p.cancelTs=null;}
+  if(st==='已寄出'){p.sentTs=now;p.shippedTs=null;}
   if(st==='已訂貨'){p.orderedTs=now;p.shippedTs=null;}
-  if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&!r.orderedTs)p.orderedTs=now;p.shippedTs=now;p.recvBy=IS_ADMIN?'admin':'store';}
+  if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&viaOf(r)==='hq'){if(!r.sentTs)p.sentTs=now;}else if(r&&!r.orderedTs)p.orderedTs=now;p.shippedTs=now;p.recvBy=IS_ADMIN?'admin':'store';}
   try{await FB.upd(id,p);
+    if(st==='已寄出'&&IS_ADMIN){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'📦 耗材已寄出',`總部已寄出：${itemsBrief(r.items)}，收到請按「已收到」`);}
     if(st==='已訂貨'&&IS_ADMIN){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'🛒 耗材已訂貨',`總部已訂貨，廠商會直接寄到門市：${itemsBrief(r.items)}`);}
-    toast(st==='已訂貨'?'已標記：已訂貨，門市會收到通知':st==='已出貨'?(IS_ADMIN?'已標記：已到貨':'✅ 已確認收到，謝謝'):'已更新');}
+    toast(st==='已寄出'?'已標記：已寄出，門市會收到通知':st==='已訂貨'?'已標記：已訂貨，門市會收到通知':st==='已出貨'?(IS_ADMIN?'已標記：已到貨':'✅ 已確認收到，謝謝'):'已更新');}
   catch(e){toast('❌ 更新失敗，請再試一次');console.error(e);}
 }
 function askBatchOrder(){
-  const pend=REQS.filter(r=>r.status==='已申請'&&(FILT.store==='all'||r.store===FILT.store));
+  const pend=REQS.filter(r=>isPendD(r)&&(FILT.store==='all'||r.store===FILT.store));
   openOv(`<h3>全部標記已訂貨？</h3><div class="hint">${pend.map(r=>esc(r.store)+' '+fmtD(r.createdTs)).join('、')}</div>
     <div class="ov-foot"><button class="btn" onclick="closeOv()">先不要</button><button class="btn blu" id="boBtn" onclick="doBatchOrder()">確定（${pend.length} 張）</button></div>`);
 }
 async function doBatchOrder(){
   if(!fbReady()){toast('還在連線，請稍候');return;}
-  const pend=REQS.filter(r=>r.status==='已申請'&&(FILT.store==='all'||r.store===FILT.store));
+  const pend=REQS.filter(r=>isPendD(r)&&(FILT.store==='all'||r.store===FILT.store));
   $('boBtn').disabled=true;
   try{await FB.batchUpd(pend.map(r=>r.id),{status:'已訂貨',orderedTs:Date.now()});closeOv();toast(`已標記 ${pend.length} 張為已訂貨，門市會收到通知`);
     const by={};pend.forEach(r=>{(by[r.store]=by[r.store]||[]).push(...(r.items||[]));});
@@ -762,7 +815,7 @@ async function doDel(id){try{await FB.del(id);closeOv();toast('已刪除');}catc
 function openEdit(id){
   const r=REQS.find(x=>x.id===id);if(!r)return;
   let h=`<h3>${esc(r.store)} ${fmtD(r.createdTs)} 的申請</h3><div class="hint" style="margin-bottom:6px">總部可調整數量（例：只訂得到 1 個），改過的門市會看到「原 X」。數量改 0 ＝ 不出這項。</div>`;
-  h+=(r.items||[]).map((x,i)=>`<div class="erow"><span>${esc(x.name)}${x.orig!=null&&x.orig!==x.qty?` <small class="hint">(原 ${x.orig})</small>`:''}</span><div class="step"><input type="number" inputmode="numeric" min="0" max="999" id="eq${i}" value="${x.qty}" style="border:0;width:64px" aria-label="${esc(x.name)} 數量"></div><span class="unit">${esc(x.unit||'')}</span></div>`).join('');
+  h+=(r.items||[]).map((x,i)=>`<div class="erow"><span>${esc(x.name)}${x.orig!=null&&x.orig!==x.qty?` <small class="hint">(原 ${x.orig})</small>`:''}</span><div class="step"><input type="number" inputmode="numeric" min="0" max="999" id="eq${i}" value="${x.qty}" style="border:0;width:64px" aria-label="${esc(x.name)} 數量"></div><span class="unit">${esc(uD(x.unit))}</span></div>`).join('');
   h+=`<label class="lab" for="eNote">總部備註<span>門市看得到</span></label><input class="inp" id="eNote" maxlength="120" value="${esc(r.hqNote||'')}" placeholder="例：A4 紙缺貨，下週到">`;
   h+=`<div class="ov-foot"><button class="btn" onclick="closeOv()">取消</button><button class="btn pri" onclick="saveEdit('${id}')">儲存</button></div>`;
   openOv(h);
@@ -792,7 +845,7 @@ function vItems(){
   if(!all.length)h+=`<div class="empty">還沒有品項，請從上面新增</div>`;
   h+=all.map((it,i)=>`<div class="mrow${it.active===false?' off':''}">
     <div class="mord"><button onclick="mvItem(${i},-1)" ${i?'':'disabled'} aria-label="上移">▲</button><button onclick="mvItem(${i},1)" ${i<all.length-1?'':'disabled'} aria-label="下移">▼</button></div>
-    <div class="mname"><b>${esc(it.name)}</b>${it.cat?`<span class="tag">${esc(it.cat)}</span>`:''}${it.active===false?'<span class="tag g">停用</span>':''}<div>單位：${esc(it.unit||'—')}${it.perPrinter?'・依各店印表機':''}${it.perStore?'・限：'+(Object.keys(it.models||{}).filter(k=>(it.models[k]||[]).length).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(k=>esc(k.replace('店',''))+'（'+it.models[k].map(esc).join('、')+'）').join('、')||'尚未登記任何門市'):''}${optsOf(it).length?'・顏色／規格：'+optsOf(it).map(esc).join('、'):''}${it.note?'・'+esc(it.note):''}</div></div>
+    <div class="mname"><b>${esc(it.name)}</b>${it.cat?`<span class="tag">${esc(it.cat)}</span>`:''}${it.active===false?'<span class="tag g">停用</span>':''}<div>單位：${esc(it.unit||'—')}${it.perPrinter?'・依各店印表機':''}・${VIA_NAME[viaOfItem(it)]}${it.perStore?'・限：'+(Object.keys(it.models||{}).filter(k=>(it.models[k]||[]).length).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(k=>esc(k.replace('店',''))+'（'+it.models[k].map(esc).join('、')+'）').join('、')||'尚未登記任何門市'):''}${optsOf(it).length?'・顏色／規格：'+optsOf(it).map(esc).join('、'):''}${it.note?'・'+esc(it.note):''}</div></div>
     <button class="btn sm ghost" onclick="editItem(${i})">編輯</button>
     <button class="btn sm ${it.active===false?'ok':'ghost'}" onclick="togItem(${i})">${it.active===false?'啟用':'停用'}</button>
   </div>`).join('');
@@ -822,6 +875,8 @@ function editItem(i){
     <label class="lab" for="eCat">分類</label><input class="inp" id="eCat" maxlength="10" value="${esc(it.cat||'')}">
     <label class="lab" for="eOpts">顏色／規格<span>逗號分開，空白＝不分</span></label><input class="inp" id="eOpts" maxlength="80" value="${esc(optsOf(it).join(','))}">
     <label class="chk"><input type="checkbox" id="ePer" ${it.perPrinter?'checked':''}> 依各店印表機分開（印表機在「門市資料」設定）</label>
+    <label class="lab">怎麼送到門市</label>
+    <div class="seg" style="display:inline-flex"><label class="chk" style="margin:4px 12px 4px 6px"><input type="radio" name="eVia" value="direct" ${viaOfItem(it)==='direct'?'checked':''}> 廠商直送門市</label><label class="chk" style="margin:4px 8px"><input type="radio" name="eVia" value="hq" ${viaOfItem(it)==='hq'?'checked':''}> 總部統一訂、再寄到各店</label></div>
     <label class="chk"><input type="checkbox" id="ePS" ${it.perStore?'checked':''} onchange="$('psBox').style.display=this.checked?'':'none'"> 只給有登記型號的門市（墨水、色帶這類各店型號不同的）</label>
     <div id="psBox" style="${it.perStore?'':'display:none'}">${STORES.map((st,k)=>`<div class="orow"><span style="flex:none;width:64px;font-weight:700">${esc(st.replace('店',''))}</span><input class="inp" id="psm${k}" maxlength="80" placeholder="型號，不知道就空白（門市看不到）" value="${esc(((it.models||{})[st]||[]).join(','))}" aria-label="${esc(st)} 型號"></div>`).join('')}<div class="hint" style="margin-top:6px">一間店有多個型號用逗號分開。空白的店看不到這個品項，要訂可以用「其他」。</div></div>
     <label class="lab" for="eINote">說明</label><input class="inp" id="eINote" maxlength="40" value="${esc(it.note||'')}">
@@ -831,7 +886,7 @@ function editItem(i){
 async function saveItem(i){
   const name=$('eName').value.trim();if(!name){toast('品名不能空白');return;}
   const a=(ITEMS||DEFAULT_ITEMS).map(x=>({...x}));
-  Object.assign(a[i],{name,unit:$('eUnit').value.trim(),cat:$('eCat').value.trim(),note:$('eINote').value.trim(),opts:parseOpts($('eOpts').value),perPrinter:$('ePer').checked,perStore:$('ePS').checked});
+  Object.assign(a[i],{name,unit:$('eUnit').value.trim(),cat:$('eCat').value.trim(),note:$('eINote').value.trim(),opts:parseOpts($('eOpts').value),perPrinter:$('ePer').checked,perStore:$('ePS').checked,via:(document.querySelector('input[name=eVia]:checked')||{}).value||'direct'});
   if($('ePS').checked){const m={};STORES.forEach((st,k)=>{const v=[...new Set($('psm'+k).value.split(/[,，、]+/).map(x=>x.trim().replace(/[#@'"\\<>]/g,'')).filter(Boolean))];if(v.length)m[st]=v;});a[i].models=m;delete a[i].perInk;}
   if(await saveItems(a))closeOv();
 }
@@ -859,7 +914,7 @@ function vStats(){
   else{
     const S=STORES.map(s=>s.replace('店',''));
     h+=`<div class="scrollx"><table class="st"><thead><tr><th>品項</th>${S.map(s=>`<th>${s}</th>`).join('')}<th>合計</th></tr></thead><tbody>`;
-    h+=names.map(n=>`<tr><td>${esc(n)}</td>${STORES.map(s=>{const v=m[n].by[s]||0;return `<td class="${v?'':'z'}">${v||'·'}</td>`;}).join('')}<td><b>${m[n].t}</b> <small class="hint">${esc(m[n].unit)}</small></td></tr>`).join('');
+    h+=names.map(n=>`<tr><td>${esc(n)}</td>${STORES.map(s=>{const v=m[n].by[s]||0;return `<td class="${v?'':'z'}">${v||'·'}</td>`;}).join('')}<td><b>${m[n].t}</b> <small class="hint">${esc(uD(m[n].unit))}</small></td></tr>`).join('');
     h+=`</tbody><tfoot><tr><td>申請張數</td>${STORES.map(s=>`<td>${cnt[s]||0}</td>`).join('')}<td>${rs.length}</td></tr></tfoot></table></div>`;
   }
   return h+'</div>';
@@ -985,6 +1040,7 @@ const PUSH_URL = "https://script.google.com/macros/s/AKfycbxOfnIJOxzCE5SlfZYIpK6
 
 window.FB = {
   add: d => addDoc(COL, {...d, createdAt: serverTimestamp()}),
+  addMany: async list => { const b = writeBatch(db); list.forEach(d => b.set(doc(COL), {...d, createdAt: serverTimestamp()})); await b.commit(); },
   upd: (id, p) => updateDoc(doc(db, 'supplyRequests', id), {...p, updatedAt: serverTimestamp()}),
   del: id => deleteDoc(doc(db, 'supplyRequests', id)),
   batchUpd: async (ids, p) => {
