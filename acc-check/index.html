@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>配件盤點核對｜倚盟電訊</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#EDF0EC; --card:#fff; --ink:#17242A; --muted:#5B6A6E; --rule:#C6CEC8;
@@ -125,64 +123,12 @@
     .g>summary::before{display:none}
     .g .inner{display:block !important}
   }
-
-  /* ══════════ 工具箱風格（與首頁一致）══════════
-     只改外觀：奶油底、圓角、暖陰影、標題襯線體、主按鈕橘色。
-     比對結果的分類顏色（相符綠／多紅／少藍／紫／橘）刻意不動。 */
-  :root{--paper:#FFF8F1;--ink:#1C1B19;--muted:#6E6A62;--rule:#E6D9CB;--brand:#E8541E;--peach:#FFE9D6;
-    --serif:"Noto Serif TC","Noto Serif CJK TC","Noto Sans TC",serif}
-  body{min-height:100vh;background-attachment:fixed;
-    background-image:radial-gradient(60% 40% at 8% 100%,#FFD9BC 0,rgba(255,217,188,0) 70%),radial-gradient(55% 45% at 95% 100%,#FFD2AD 0,rgba(255,210,173,0) 70%),radial-gradient(40% 30% at 85% 12%,#FFE4CC 0,rgba(255,228,204,0) 70%),radial-gradient(35% 28% at 12% 20%,#FFEBDA 0,rgba(255,235,218,0) 70%)}
-  .brand{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.92);border:1px solid var(--rule);
-    border-radius:18px;padding:11px 14px;margin-bottom:16px;box-shadow:0 2px 10px rgba(140,84,40,.07)}
-  .brand .logo{flex:none;display:block;height:40px;width:auto}
-  .brand .bsep{width:1px;align-self:stretch;background:var(--rule)}
-  .brand .btitle{flex:1;min-width:0}
-  .brand h1{margin:0;font-size:19px;font-family:var(--serif);font-weight:900;letter-spacing:.03em}
-  .brand .bmeta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .brand .bstore{background:var(--peach);color:#9A3A10;border-radius:6px;padding:1px 9px;font-weight:700}
-  .hubbtn{flex:none;border:1px solid var(--rule);background:#fff;color:var(--muted);border-radius:10px;padding:7px 11px;
-    font-size:13px;text-decoration:none;white-space:nowrap;box-shadow:0 3px 0 #E8D9C8}
-  .hubbtn:hover{background:#FFF1E4;color:var(--brand);border-color:#F5B98C}
-  .hubbtn:active{transform:translateY(3px);box-shadow:none}
-  @media(max-width:560px){.brand{gap:9px;padding:9px 11px}.brand .logo{height:34px}.brand h1{font-size:16px}.brand .bmeta span:not(.bstore){display:none}}
-  section,.steps,.g,.scroll{border-radius:18px}
-  section{box-shadow:0 2px 10px rgba(140,84,40,.07)}
-  .steps{box-shadow:0 2px 10px rgba(140,84,40,.07)}
-  .steps div.now{background:var(--brand)}
-  .g{overflow:hidden}
-  h2{font-family:var(--serif);font-weight:900}
-  select,input[type=text],input[type=number],input[type=date],textarea{border-radius:8px}
-  button.go{background:var(--brand);border-radius:14px;box-shadow:0 5px 0 #B83D10;transition:transform .1s,box-shadow .1s}
-  button.go:not(:disabled):hover{background:#D9491A}
-  button.go:not(:disabled):active{transform:translateY(5px);box-shadow:none}
-  button.mini{border-radius:8px}
-  .tabs{border-radius:10px;overflow:hidden}
-  .score{border-radius:14px}
-  #store:disabled{color:var(--ink);background:var(--peach);opacity:1;font-weight:700}
-  @media print{
-    body{background:#fff!important;background-image:none!important}
-    .brand{display:none}
-    section,.steps,.g,.scroll,.score{border-radius:0!important;box-shadow:none!important}
-  }
 </style>
 </head>
 <body>
-<script>
-/* ── 倚盟工具箱共用登入：從工具箱首頁進來才會有 emo:sso，沒有就回首頁。本機開檔(file://)不擋，方便測試。 */
-var SSO=null;try{SSO=JSON.parse(localStorage.getItem('emo:sso')||'null');}catch(e){}
-if((!SSO||!SSO.role)&&location.protocol!=='file:'){location.replace('/');}
-</script>
 <div class="wrap">
-  <header class="brand">
-    <a href="/" title="回倚盟工具箱"><img class="logo" alt="倚盟電訊" src="data:image/png;base64,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"></a>
-    <div class="bsep"></div>
-    <div class="btitle">
-      <h1>配件盤點核對</h1>
-      <div class="bmeta"><span class="bstore" id="bmStore"></span><span>大禾庫存 × SCMS 盤點單</span></div>
-    </div>
-    <a class="hubbtn" href="/" title="回倚盟工具箱">☰ 工具箱</a>
-  </header>
+  <p class="org">倚盟電訊</p>
+  <h1>配件盤點核對</h1>
   <p class="sub">大禾 CA08 庫存檔 × SCMS 盤點單。全部在這台電腦運算，檔案不會上傳到任何地方。</p>
 
   <div class="steps" id="steps">
@@ -217,10 +163,10 @@ if((!SSO||!SSO.role)&&location.protocol!=='file:'){location.replace('/');}
 
     <div id="mode-api">
       <div class="row">
-        <input type="file" id="photos" accept="image/*" multiple>
+        <input type="file" id="photos" accept="image/*,application/pdf,.pdf" multiple>
         <button class="mini" id="ocr">開始辨識</button>
       </div>
-      <p class="hint">盤點單超過一頁請一次全選。缺頁會被當成差異，務必拍齊。</p>
+      <p class="hint">可以丟照片，也可以丟 PDF（iPhone 掃描成一個檔也行）。超過一頁請一次全選，缺頁會被當成差異。</p>
       <p class="note" id="onote"></p>
       <p class="err hide" id="oerr"></p>
       <p class="err hide" id="keytip"></p>
@@ -302,9 +248,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 </script>
 <script>
 
-(function(){
-  try{ var bm=document.getElementById("bmStore"); if(bm){ bm.textContent=(SSO&&SSO.store)?(SSO.store+(SSO.actingAdmin?"（總部）":"")):(SSO&&SSO.role==="admin"?"總部":""); if(!bm.textContent) bm.style.display="none"; } }catch(e){}
-})();
 (function(){
   /* ===================================================================
      公開網頁版：這裡務必保持空白。
@@ -448,11 +391,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         var sel=$("store"); sel.innerHTML='<option value="">請選擇</option>';
         stores.forEach(function(s){ var o=document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o); });
         if(stores.length===1) sel.value=stores[0];
-        /* 工具箱已經選好店了：自動選那一間；門市帳號只能核對自己的店（總部切換店點時也照那間） */
-        if(SSO&&SSO.store){
-          if(stores.indexOf(SSO.store)>=0){ sel.value=SSO.store; if(SSO.role==='store'&&!SSO.actingAdmin) sel.disabled=true; }
-          else if(SSO.role==='store'&&!SSO.actingAdmin){ fail("這份大禾檔裡沒有「"+SSO.store+"」的資料，請確認 CA08 轉出時有勾到你的店。"); }
-        }
         $("storebox").className="";
         showStore(); renderCount();
       }catch(err){ fail("檔案讀不開："+err.message+"（若是舊版 .xls 中文變亂碼，請先另存成 .xlsx）"); }
@@ -552,16 +490,60 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     return new Promise(function(res,rej){
       var fr=new FileReader();
       fr.onload=function(){ res(String(fr.result).split(",")[1]) };
-      fr.onerror=function(){ rej(new Error("讀不到照片")) };
+      fr.onerror=function(){ rej(new Error("讀不到檔案")) };
       fr.readAsDataURL(file);
     });
+  }
+
+  // 圖片上傳前先縮到長邊 1568（API 內部本來就會縮到這個大小），
+  // 手機原圖動輒好幾 MB，縮完通常只剩十分之一，上傳快很多也不影響辨識。
+  function shrink(file){
+    return new Promise(function(res){
+      var url=URL.createObjectURL(file);
+      var img=new Image();
+      img.onload=function(){
+        try{
+          var MAX=1568, w=img.naturalWidth, h=img.naturalHeight;
+          var k=Math.min(1, MAX/Math.max(w,h));
+          var cw=Math.round(w*k), ch=Math.round(h*k);
+          var cv=document.createElement("canvas");
+          cv.width=cw; cv.height=ch;
+          cv.getContext("2d").drawImage(img,0,0,cw,ch);
+          var durl=cv.toDataURL("image/jpeg",0.85);
+          URL.revokeObjectURL(url);
+          res({media:"image/jpeg", data:durl.split(",")[1]});
+        }catch(e){ URL.revokeObjectURL(url); res(null); }
+      };
+      img.onerror=function(){ URL.revokeObjectURL(url); res(null); };
+      img.src=url;
+    });
+  }
+
+  // 把一個檔案變成要送給 API 的內容區塊：PDF 走 document，圖片走 image
+  async function blockOf(file){
+    var isPdf = (file.type==="application/pdf") || /\.pdf$/i.test(file.name||"");
+    if(isPdf){
+      // PDF 原封不動送出，轉成傳輸格式後會膨脹約 1.33 倍，上限 32MB
+      if(file.size > 23*1024*1024){
+        throw new Error("這個 PDF 太大（"+Math.round(file.size/1024/1024)+"MB），超過可傳送的上限。"+
+          "請改成直接丟照片，或把 PDF 拆成兩份分次辨識。");
+      }
+      var d=await b64(file);
+      return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d}};
+    }
+    var small=await shrink(file);
+    if(small) return {type:"image",source:{type:"base64",media_type:small.media,data:small.data}};
+    var raw=await b64(file);   // 縮圖失敗就送原檔
+    var mt=file.type;
+    if(["image/jpeg","image/png","image/gif","image/webp"].indexOf(mt)<0) mt="image/jpeg";
+    return {type:"image",source:{type:"base64",media_type:mt,data:raw}};
   }
 
   $("ocr").addEventListener("click",async function(){
     var key=$("key").value.trim(), files=$("photos").files;
     $("oerr").className="err hide";
     if(!key){ oerr("請先填 API 金鑰"); return; }
-    if(!files.length){ oerr("請先選照片"); return; }
+    if(!files.length){ oerr("請先選檔案"); return; }
     try{ if($("remember").checked) window.localStorage.setItem("ymkey",key); else window.localStorage.removeItem("ymkey"); }catch(e){}
 
     var all=[];
@@ -569,9 +551,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     photoPages=files.length;
     $("ocr").disabled=true;
     for(var i=0;i<files.length;i++){
-      $("onote").textContent="辨識中… 第 "+(i+1)+" / "+files.length+" 張";
+      $("onote").textContent="辨識中… 第 "+(i+1)+" / "+files.length+" 個檔案";
       try{
-        var data=await b64(files[i]);
+        var block=await blockOf(files[i]);
         var res=await fetch("https://api.anthropic.com/v1/messages",{
           method:"POST",
           headers:{
@@ -584,8 +566,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
             model:$("model").value.trim()||"claude-haiku-5-5",
             max_tokens:16000,
             messages:[{role:"user",content:[
-              {type:"image",source:{type:"base64",media_type:files[i].type||"image/jpeg",data:data}},
-              {type:"text",text:"這張照片是一份商品庫存清單（可能是列印的表格，欄位通常有品名、數量，有時有顏色）。請逐列讀出每一個品項，回傳 JSON 陣列，格式 [[\"品名\",\"顏色\",數量], ...]。規則：(1) 只輸出 JSON 陣列本身，不要任何說明文字、不要 markdown 標記；(2) 數量必須是數字，完全看不清楚才填 null；(3) 沒有顏色欄就填空字串；(4) 務必確認每個數量對應到同一列的品名，不要串行；(5) 如果這張照片完全沒有表格或清單，就回傳空陣列 []，不要用文字說明。"}
+              block,
+              {type:"text",text:"這是一份商品庫存清單（照片或 PDF）（可能是列印的表格，欄位通常有品名、數量，有時有顏色）。請逐列讀出每一個品項，回傳 JSON 陣列，格式 [[\"品名\",\"顏色\",數量], ...]。規則：(1) 只輸出 JSON 陣列本身，不要任何說明文字、不要 markdown 標記；(2) 數量必須是數字，完全看不清楚才填 null；(3) 沒有顏色欄就填空字串；(4) 務必確認每個數量對應到同一列的品名，不要串行；(5) 如果裡面完全沒有表格或清單，就回傳空陣列 []，不要用文字說明。"}
             ]}]
           })
         });
@@ -595,7 +577,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         var clean=txt.replace(/```json/g,"").replace(/```/g,"").trim();
         var arr=salvage(clean);
         if(!arr||!arr.length){
-          throw new Error("這張圖沒讀到清單。模型回覆：「"+clean.slice(0,80)+"」— 請確認這張是盤點單照片，而不是其他圖片。");
+          throw new Error("這個檔案沒讀到清單。模型回覆：「"+clean.slice(0,80)+"」— 請確認這是盤點單，而不是其他檔案。");
         }
         if(json.stop_reason==="max_tokens"){
           truncated=true;
@@ -604,7 +586,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           all.push({name:String(r[0]||"").trim(),color:String(r[1]||"").trim(),qty:qty(r[2])});
         });
       }catch(err){
-        oerr("第 "+(i+1)+" 張辨識失敗："+err.message);
+        oerr("第 "+(i+1)+" 個檔案辨識失敗："+err.message);
         $("ocr").disabled=false; $("onote").textContent="";
         return;
       }
@@ -774,21 +756,21 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       '<div class="score fine"><p class="k">兩邊一致</p><p class="v">'+r.same.length+'<small>項</small></p></div>'+
       '</div>';
 
-    html+=group("up","🔺 SCMS多、大禾少","SCMS銷貨／SCMS調撥",r.up,function(x){
+    html+=group("up","🔺 SCMS多、大禾少","要銷貨／補調撥",r.up,function(x){
       return '<td>'+esc(x.d.name)+'</td><td class="num">'+x.s.qty+' ／ '+x.d.qty+'</td><td class="num"><strong>+'+x.diff+'</strong></td>';
-    },"盤點單的數量比大禾多。可能 SCMS 沒銷貨，或已調給分店但 SCMS 庫存沒調出。處理：SCMS 銷貨或 SCMS 調撥。",true,["品名","SCMS ／ 大禾","差異"]);
+    },"盤點單的數量比大禾多。可能 SCMS 沒銷貨，或已調給分店但 SCMS 庫存沒調出。",true,["品名","SCMS ／ 大禾","差異"]);
 
-    html+=group("down","🔻 大禾多、SCMS少","可能SCMS銷錯(不做處理)／大禾調撥",r.down,function(x){
+    html+=group("down","🔻 大禾多、SCMS少","補調撥單",r.down,function(x){
       return '<td>'+esc(x.d.name)+'</td><td class="num">'+x.s.qty+' ／ '+x.d.qty+'</td><td class="num"><strong>'+x.diff+'</strong></td>';
-    },"大禾的數量比盤點單多。正常不用銷貨，可能是 SCMS 銷錯了（不做處理）；或向分店調貨實際已入但大禾還沒調撥 → 大禾調撥。",true,["品名","SCMS ／ 大禾","差異"]);
+    },"大禾的數量比盤點單多。可能 SCMS 多銷貨，或向分店調貨實際已入但 SCMS 未調貨就銷貨。",true,["品名","SCMS ／ 大禾","差異"]);
 
-    html+=group("none","🖼️ SCMS有、大禾無","SCMS銷貨／SCMS調撥",r.aOnly,function(x){
+    html+=group("none","🖼️ SCMS有、大禾無","要銷貨",r.aOnly,function(x){
       return '<td>'+esc(x.name)+' <span style="color:#5B6A6E">'+esc(x.color)+'</span></td><td class="num">'+x.qty+'</td>';
-    },"盤點單上有、大禾完全查不到這個品項，代表 SCMS 沒銷貨或沒調出。處理：SCMS 銷貨或 SCMS 調撥。",true,["品名","SCMS 數量"]);
+    },"盤點單上有、大禾完全查不到這個品項，代表 SCMS 沒銷貨。",true,["品名","SCMS 數量"]);
 
-    html+=group("ghost","📄 大禾有、SCMS 沒出現","可能SCMS銷錯(不做處理)／大禾調撥",r.bOnly,function(x){
+    html+=group("ghost","📄 大禾有、SCMS 沒出現","先確認缺頁",r.bOnly,function(x){
       return '<td>'+esc(x.name)+'</td><td class="num">'+x.qty+'</td>';
-    },"大禾有、盤點單上沒有。可能是 SCMS 銷錯了（不做處理），或要做大禾調撥。也可能是照片缺頁，請先確認盤點單有拍齊。",false,["品名","大禾數量"]);
+    },"通常是照片缺頁或這項沒盤到，不一定是真差異。先確認盤點單是否拍齊，再往下查。",false,["品名","大禾數量"]);
 
     html+=group("ok","✅ 兩邊一致","免處理",r.same,function(x){
       return '<td>'+esc(x.d.name)+'</td><td class="num">'+x.d.qty+'</td>';
@@ -852,18 +834,18 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     var same=r.same.map(function(x){ return {name:x.d.name, scms:x.s.qty, daher:x.d.qty, last:""} });
 
     var sheets=[
-      {key:"SCMS多(SCMS銷貨或調撥)", rows:up, head:H1, diffCol:true,
+      {key:"SCMS多(要銷貨)", rows:up, head:H1, diffCol:true,
        title:ST+" A MODEL 差異("+dp.md+")— 🔺 SCMS多、大禾少",
-       note:src+"|處理:SCMS 銷貨／SCMS 調撥"},
-      {key:"大禾多(可能SCMS銷錯)", rows:down, head:H1, diffCol:true,
+       note:src+"|處理:SCMS 沒銷貨→要銷貨;或調給分店未調出→補調撥"},
+      {key:"大禾多(SCMS多銷)", rows:down, head:H1, diffCol:true,
        title:ST+" A MODEL 差異("+dp.md+")— 🔻 大禾多、SCMS少",
-       note:src+"|處理:可能 SCMS 銷錯(不做處理)／大禾調撥"},
-      {key:"SCMS有大禾無(SCMS銷貨或調撥)", rows:aOnly, head:H2, diffCol:false,
-       title:ST+" A MODEL 差異("+dp.md+")— 🖼️ SCMS有、大禾無",
-       note:src+"|處理:SCMS 銷貨／SCMS 調撥"},
+       note:src+"|處理:SCMS 多銷貨;或調入未過帳就銷貨→補調撥單"},
+      {key:"SCMS有大禾無(要銷貨)", rows:aOnly, head:H2, diffCol:false,
+       title:ST+" A MODEL 差異("+dp.md+")— 🖼️ SCMS有、大禾無(要銷貨)",
+       note:src+"|處理:SCMS 沒銷貨→要銷貨"},
       {key:"大禾有SCMS沒出現", rows:bOnly, head:H2, diffCol:false,
        title:ST+" A MODEL — 📄 大禾有、SCMS 沒出現("+bOnly.length+" 項)",
-       note:"處理:可能 SCMS 銷錯(不做處理)／大禾調撥;若有頁面漏拍請補拍後再核"},
+       note:"SCMS 若僅列印有庫存品項,本頁=SCMS帳已0→照「大禾多」查SCMS銷貨;若有頁面漏拍請補拍後再核"},
       {key:"一致", rows:same, head:H2, diffCol:false,
        title:ST+" A MODEL — ✅ 一致("+same.length+" 項)", note:src}
     ];
