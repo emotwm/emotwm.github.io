@@ -465,14 +465,14 @@ async function markSupply(){
     const app=A.getApps().find(x=>x.name==='supply')||A.initializeApp({apiKey:'AIzaSyCAPljha2I7qqFU49GV2UJC2F64HoKRqnc',authDomain:'telecom-invoice.firebaseapp.com',projectId:'telecom-invoice',storageBucket:'telecom-invoice.firebasestorage.app',messagingSenderId:'97406219385',appId:'1:97406219385:web:bff8bbceba3d36536810a8'},'supply');
     const db=F.getFirestore(app), col=F.collection(db,'supplyRequests');
     const cnt=async st=>(await F.getCountFromServer(F.query(col,F.where('status','==',st)))).data().count;
-    const [n1,nO,nS]=await Promise.all([cnt('已申請'),cnt('已訂貨'),cnt('已寄出')]);const n2=nO+nS;
-    if(!n1&&!n2)return;
+    const [n1,nO,nS,n3]=await Promise.all([cnt('已申請'),cnt('已訂貨'),cnt('已寄出'),cnt('已出貨')]);const n2=nO+nS;
+    if(!n1&&!n2&&!n3)return;
     const b2=document.querySelector('#menuGrid [data-url="/supply/"]');   /* 等待期間畫面可能重畫 */
     if(!b2||b2.querySelector('.supTag'))return;
     b2.style.position='relative';b2.style.borderColor='#d93025';
     const t=document.createElement('span');t.className='supTag';
     t.style.cssText='position:absolute;top:-10px;right:-6px;background:#d93025;color:#fff;font-weight:800;font-size:15px;padding:5px 12px;border-radius:999px;box-shadow:0 4px 10px rgba(217,48,37,.35);white-space:nowrap';
-    t.textContent='🔔 '+[n1?'待處理 '+n1:'',n2?'待到貨 '+n2:''].filter(Boolean).join('・');
+    t.textContent='🔔 '+[n1?'待處理 '+n1:'',n2?'待到貨 '+n2:'',n3?'待入庫 '+n3:''].filter(Boolean).join('・');
     b2.appendChild(t);
   }catch(e){console.warn('耗材待處理數讀取失敗',e);}
 }

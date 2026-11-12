@@ -159,7 +159,7 @@ textarea.inp{min-height:68px;resize:vertical}
 .p-已訂貨{background:var(--s2-bg);color:var(--s2)}
 .p-已出貨{background:var(--s3-bg);color:var(--s3)}
 .p-已取消{background:var(--s4-bg);color:var(--s4)}
-.flow{display:flex;align-items:center;margin:11px 0 10px;max-width:440px}
+.flow{display:flex;align-items:center;margin:11px 0 10px;max-width:600px}
 .flow .dot{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;font-size:11.5px;color:#B9AEA2}
 .flow .dot i{width:22px;height:22px;border-radius:50%;border:2px solid #E3D7CA;background:#fff;display:flex;
   align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:900;color:#fff}
@@ -177,6 +177,10 @@ textarea.inp{min-height:68px;resize:vertical}
 .rq-meta{font-size:12.5px;color:var(--muted);margin-top:7px;line-height:1.65}
 .rq-meta b{color:var(--ink);font-weight:700}
 .rq-hq{margin-top:7px;background:var(--s2-bg);color:var(--s2);border-radius:9px;padding:6px 10px;font-size:13px}
+.recvbox{flex:1 1 100%;display:flex;align-items:center;gap:12px;background:#FFF3E0;border:1.5px dashed #F2B48F;border-radius:12px;padding:10px 12px;font-size:13.5px;color:#8A3A10;line-height:1.55;text-align:left}
+.recvbox span{flex:1;min-width:0}
+.recvbox b{font-size:15px;color:var(--ink)}
+.recvbtn{flex:none;font-size:16px;padding:12px 18px;box-shadow:0 2px 6px rgba(14,122,75,.3)}
 .rq-act{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;justify-content:flex-end}
 
 /* 總部：篩選 */
@@ -190,6 +194,9 @@ textarea.inp{min-height:68px;resize:vertical}
 .vtag{font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px}
 .v-direct{background:#EEF3FB;color:#1D5FA8}
 .v-hq{background:#F3EAF8;color:#7A3FA0}
+.p-已入庫{background:#ECEAE6;color:#4E4A43}
+.btn.stk{background:#4E4A43;border-color:#4E4A43;color:#fff}
+.sumIn{border-color:#C9C2B8;background:#FAF8F5}
 .p-已寄出{background:#F3EAF8;color:#7A3FA0}
 .sumH{border-color:#D3B3E6;background:#FCF8FE}
 .kpi{background:#fff;border:1px solid var(--card);border-radius:14px;padding:10px 12px;cursor:pointer;text-align:left;font-family:inherit}
@@ -301,15 +308,15 @@ table.st td.z{color:#D5CBBF}
 /* ═══════════════════════════════════════════════════════════
    倚盟工具箱 · 耗材管理  （/supply/）
    流程：門市申請 → 總部訂貨（廠商直接寄門市）→ 門市收到
-   ※ 資料庫狀態值沿用 '已出貨'（＝已到貨／門市已收到），畫面一律顯示「已到貨」
+   ※ 資料庫狀態值沿用 '已出貨'（＝門市已收到，等總部入庫大禾）；'已入庫'＝總部已入庫大禾，整個流程結束
    資料：Firebase（同進貨單專案 telecom-invoice）
      settings/supplyItems   品項清單 {items:[{id,name,unit,cat,note,active}]}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.10b';
+const VER='2026.11.12a';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
-const FLOW=['已申請','已訂貨','已出貨'];
+const FLOW=['已申請','已訂貨','已出貨','已入庫'];
 const DEFAULT_ITEMS=[
   {id:'toner',name:'碳粉匣',unit:'個',cat:'事務用品',note:'',opts:['黑','藍','紅','黃'],perPrinter:true,via:'direct',active:true},
   {id:'a4',name:'A4 影印紙',unit:'包',cat:'事務用品',note:'',via:'direct',active:true},
@@ -572,30 +579,32 @@ async function doSend(){
 }
 
 /* ══════════ 申請單卡片（門市、總部共用） ══════════ */
-function flowHtml(r){
+function flowHtml(r,admin){
   if(r.status==='已取消')return '';
-  const hq=viaOf(r)==='hq', F=hq?['已申請','已寄出','已出貨']:FLOW;
-  const idx=F.indexOf(r.status), ts=[r.createdTs,hq?r.sentTs:r.orderedTs,r.shippedTs];
+  const hq=viaOf(r)==='hq';let F=hq?['已申請','已寄出','已出貨','已入庫']:FLOW;
+  if(!admin)F=F.slice(0,3);   /* 門市只看到自己的三步，入庫大禾是總部的事 */
+  const last=F.length-1, idx=F.indexOf(!admin&&r.status==='已入庫'?'已出貨':r.status), ts=[r.createdTs,hq?r.sentTs:r.orderedTs,r.shippedTs,r.stockedTs];
   let h='<div class="flow">';
   F.forEach((s,i)=>{
-    const cls=i<idx||(i===idx&&i===2)?'done':(i===idx?'cur':'');
+    const cls=i<idx||(i===idx&&i===last)?'done':(i===idx?'cur':'');
     if(i)h+=`<div class="bar${i<=idx?' done':''}"></div>`;
-    h+=`<div class="dot ${cls}"><i>${i<=idx?'✓':''}</i>${s==='已申請'?'門市申請':s==='已訂貨'?'總部訂貨':s==='已寄出'?'總部寄出':'門市收到'}<small>${i<=idx?fmtD(ts[i]):''}</small></div>`;
+    h+=`<div class="dot ${cls}"><i>${i<=idx?'✓':''}</i>${s==='已申請'?'門市申請':s==='已訂貨'?'總部訂貨':s==='已寄出'?'總部寄出':s==='已出貨'?'門市收到':'入庫大禾'}<small>${i<=idx?fmtD(ts[i]):''}</small></div>`;
   });
   return h+'</div>';
 }
 function rqCard(r,admin){
   let h=`<div class="rq"><div class="rq-top">`;
   if(admin)h+=`<span class="rq-store">${esc(r.store)}</span>`;
-  h+=`<span class="rq-date">${fmtDT(r.createdTs)}</span><span class="vtag v-${viaOf(r)}">${VIA_NAME[viaOf(r)]}</span><span class="pill p-${esc(r.status)}">${esc(r.status==='已申請'?(viaOf(r)==='hq'?'等待總部寄出':'等待總部訂貨'):r.status==='已訂貨'?'已訂貨・等廠商寄到':r.status==='已寄出'?'總部已寄出・等收貨':r.status==='已出貨'?'已到貨':r.status)}</span></div>`;
+  h+=`<span class="rq-date">${fmtDT(r.createdTs)}</span><span class="vtag v-${viaOf(r)}">${VIA_NAME[viaOf(r)]}</span><span class="pill p-${esc(r.status)}">${esc(r.status==='已申請'?(viaOf(r)==='hq'?'等待總部寄出':'等待總部訂貨'):r.status==='已訂貨'?'已訂貨・等廠商寄到':r.status==='已寄出'?'總部已寄出・等收貨':r.status==='已出貨'?(admin?'門市已收到・待入庫大禾':'已收到'):r.status==='已入庫'?(admin?'已完成':'已收到'):r.status)}</span></div>`;
   if(admin){const c=storeCfg(r.store);if(c&&(c.company||c.taxId||c.addr))h+=`<div class="rq-co"><span>${esc(c.company||'')}${c.taxId?`・統編 <b>${esc(c.taxId)}</b>`:''}<br>${esc(c.addr||'')}</span><button class="btn sm ghost" onclick="copyCo('${esc(r.store)}')">📋 複製</button></div>`;}
-  h+=flowHtml(r);
+  h+=flowHtml(r,admin);
   if((r.items||[]).length)h+=`<div class="rq-items">${r.items.map(x=>`<span class="chip${x.orig!=null&&x.orig!==x.qty?' chg':''}">${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}<b>×${x.qty}</b>${esc(uD(x.unit))}${x.orig!=null&&x.orig!==x.qty?` <small>(原 ${x.orig})</small>`:''}</span>`).join('')}</div>`;
   let meta=[];
   if(r.by)meta.push(`申請人 <b>${esc(r.by)}</b>`);
   if(r.remark)meta.push(`備註：${esc(r.remark)}`);
   if(r.status==='已取消')meta.push(`${r.cancelBy==='admin'?'總部':'門市'}於 ${fmtDT(r.cancelTs)} 取消`);
-  if(r.status==='已出貨'&&r.shippedTs)meta.push(`${r.recvBy==='store'?'門市確認收到':'總部標記到貨'} ${fmtDT(r.shippedTs)}`);
+  if(r.status==='已入庫'&&r.stockedTs)meta.push(`總部入庫大禾 ${fmtDT(r.stockedTs)}`);
+  if((r.status==='已出貨'||r.status==='已入庫')&&r.shippedTs)meta.push(`${r.recvBy==='store'?'門市確認收到':'總部標記到貨'} ${fmtDT(r.shippedTs)}`);
   if(meta.length)h+=`<div class="rq-meta">${meta.join('<br>')}</div>`;
   if(r.hqNote)h+=`<div class="rq-hq">總部：${esc(r.hqNote)}</div>`;
   const acts=admin?adminActs(r):storeActs(r);
@@ -622,7 +631,7 @@ function askRecv(id){
 }
 function storeActs(r){
   if(r.status==='已申請')return `<button class="btn sm dng" onclick="askCancel('${r.id}',false)">取消這張申請</button>`;
-  if(isWait(r))return `<button class="btn sm ok" onclick="askRecv('${r.id}')">✅ 已收到</button>`;
+  if(isWait(r))return `<div class="recvbox"><span>📦 <b>東西寄到門市了嗎？</b><br>收到貨、點過數量沒問題，請按右邊按鈕</span><button class="btn ok recvbtn" onclick="askRecv('${r.id}')">我收到貨了</button></div>`;
   return '';
 }
 
@@ -631,38 +640,39 @@ function vMine(){
   if(!REQS_LOADED)return `<div class="card"><div class="empty">讀取中…</div></div>`;
   const list=REQS.slice().sort((a,b)=>b.createdTs-a.createdTs);
   if(!list.length)return `<div class="card"><div class="empty">還沒有申請過耗材<br><br><button class="btn pri" onclick="go('apply')">去申請</button></div></div>`;
-  let h=`<div class="card"><h2>我的申請<small>總部訂貨或寄出時會通知；東西收到請按「已收到」</small></h2>`;
+  let h=`<div class="card"><h2>我的申請<small>總部訂貨或寄出時會通知；貨到了請按「我收到貨了」</small></h2>`;
   h+=list.slice(0,SHOW_N).map(r=>rqCard(r,false)).join('');
   if(list.length>SHOW_N)h+=`<div style="text-align:center"><button class="btn" onclick="SHOW_N+=30;render()">顯示更多（還有 ${list.length-SHOW_N} 張）</button></div>`;
   return h+'</div>';
 }
 
 /* ══════════ 總部：申請單 ══════════ */
-const ST_OPTS=[['pending','待處理'],['pendD','待訂貨'],['pendH','待寄出'],['wait','待到貨'],['已出貨','已到貨'],['已取消','已取消'],['all','全部']];
+const ST_OPTS=[['pending','待處理'],['pendD','待訂貨'],['pendH','待寄出'],['wait','待到貨'],['已出貨','待入庫'],['已入庫','已完成'],['已取消','已取消'],['all','全部']];
 function vList(){
   if(!REQS_LOADED)return `<div class="card"><div class="empty">讀取中…</div></div>`;
   const n1=REQS.filter(isPendD).length, nH=REQS.filter(isPendH).length, n2=REQS.filter(isWait).length;
-  const mk=monthKey(Date.now()), n3=REQS.filter(r=>r.status==='已出貨'&&r.shippedTs&&monthKey(r.shippedTs)===mk).length;
+  const n3=REQS.filter(r=>r.status==='已出貨').length;
   let h=`<div class="kpis">
     <button class="kpi k1" onclick="setF('st','pendD')"><span>待訂貨（廠商直送）</span><b>${n1}</b></button>
     <button class="kpi k4" onclick="setF('st','pendH')"><span>待寄出（總部寄）</span><b>${nH}</b></button>
     <button class="kpi k2" onclick="setF('st','wait')"><span>待到貨</span><b>${n2}</b></button>
-    <button class="kpi k3" onclick="setF('st','已出貨')"><span>本月已到貨</span><b>${n3}</b></button></div>`;
+    <button class="kpi k3" onclick="setF('st','已出貨')"><span>待入庫大禾</span><b>${n3}</b></button></div>`;
   h+=`<div class="filt"><div class="seg">${ST_OPTS.map(([k,t])=>`<button class="${FILT.st===k?'on':''}" onclick="setF('st','${k}')">${t}</button>`).join('')}</div>
     <select class="dd" onchange="setF('store',this.value)" aria-label="門市"><option value="all">全部門市</option>${STORES.map(s=>`<option ${FILT.store===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
   /* 待訂貨彙總：總部一次下訂用 */
   if((FILT.st==='pending'||FILT.st==='pendD')&&REQS.some(r=>isPendD(r)&&(FILT.store==='all'||r.store===FILT.store)))h+=sumHtml();
+  if((FILT.st==='pending'||FILT.st==='已出貨')&&REQS.some(r=>r.status==='已出貨'&&(FILT.store==='all'||r.store===FILT.store)))h+=sumHtmlIn();
   if((FILT.st==='pending'||FILT.st==='pendH')&&REQS.some(r=>isPendH(r)&&(FILT.store==='all'||r.store===FILT.store)))h+=sumHtmlH();
   const list=REQS.filter(r=>{
     if(FILT.store!=='all'&&r.store!==FILT.store)return false;
-    if(FILT.st==='pending')return r.status==='已申請'||isWait(r);
+    if(FILT.st==='pending')return r.status==='已申請'||isWait(r)||r.status==='已出貨';
     if(FILT.st==='pendD')return isPendD(r);
     if(FILT.st==='pendH')return isPendH(r);
     if(FILT.st==='wait')return isWait(r);
     if(FILT.st==='all')return true;
     return r.status===FILT.st;
   }).sort((a,b)=>{
-    if(FILT.st==='pending'){const o={'已申請':0,'已訂貨':1,'已寄出':1};if(o[a.status]!==o[b.status])return o[a.status]-o[b.status];return a.createdTs-b.createdTs;}
+    if(FILT.st==='pending'){const o={'已申請':0,'已訂貨':1,'已寄出':1,'已出貨':2};if(o[a.status]!==o[b.status])return o[a.status]-o[b.status];return a.createdTs-b.createdTs;}
     return (b.shippedTs||b.createdTs)-(a.shippedTs||a.createdTs);
   });
   if(!list.length)h+=`<div class="card"><div class="empty">${FILT.st==='pending'?'🎉 目前沒有待處理的申請':'沒有符合的申請單'}</div></div>`;
@@ -682,6 +692,29 @@ function sumRows(pend){
     m[k].qty+=x.qty;m[k].by[r.store]=(m[k].by[r.store]||0)+x.qty;
   }));
   return Object.values(m).sort((a,b)=>b.qty-a.qty).map(x=>`<div class="srow"><b>${x.other?'<small class="tag o">其他</small> ':''}${esc(x.name)}${x.cons.size?`<small class="hint">　型號 ${[...x.cons].map(esc).join('／')}</small>`:''}</b><span class="q">${x.qty} ${esc(uD(x.unit))}</span><span class="by">${Object.keys(x.by).sort((a,b)=>storeIdx(a)-storeIdx(b)).map(s=>esc(s.replace('店',''))+' '+x.by[s]).join('・')}</span></div>`).join('');
+}
+function sumHtmlIn(){
+  const pend=REQS.filter(r=>r.status==='已出貨'&&(FILT.store==='all'||r.store===FILT.store));
+  const by={};
+  pend.forEach(r=>(r.items||[]).forEach(x=>{if(!x.qty)return;const k=x.name+'|'+uD(x.unit);(by[r.store]=by[r.store]||{})[k]=(by[r.store][k]||{n:x.name,u:uD(x.unit),q:0});by[r.store][k].q+=x.qty;}));
+  let h=`<div class="sum sumIn"><h3>📥 待入庫大禾<small>${pend.length} 張門市已收到，依店列出要入庫的品項</small></h3>`;
+  Object.keys(by).sort((a,b)=>storeIdx(a)-storeIdx(b)).forEach(st=>{
+    h+=`<div class="srow"><b>${esc(st)}</b><span class="by" style="flex:2.4;color:var(--ink);font-size:13.5px">${Object.values(by[st]).map(v=>esc(v.n)+' ×'+v.q+esc(v.u)).join('、')}</span></div>`;
+  });
+  h+=`<div class="rq-act"><button class="btn stk sm" onclick="askBatchStock()">這 ${pend.length} 張全部標記「已入庫大禾」</button></div></div>`;
+  return h;
+}
+function askBatchStock(){
+  const pend=REQS.filter(r=>r.status==='已出貨'&&(FILT.store==='all'||r.store===FILT.store));
+  openOv(`<h3>全部標記已入庫大禾？</h3><div class="hint">${pend.map(r=>esc(r.store)+' '+fmtD(r.createdTs)).join('、')}</div>
+    <div class="ov-foot"><button class="btn" onclick="closeOv()">先不要</button><button class="btn stk" id="bsBtn" onclick="doBatchStock()">確定（${pend.length} 張）</button></div>`);
+}
+async function doBatchStock(){
+  if(!fbReady()){toast('還在連線，請稍候');return;}
+  const pend=REQS.filter(r=>r.status==='已出貨'&&(FILT.store==='all'||r.store===FILT.store));
+  $('bsBtn').disabled=true;
+  try{await FB.batchUpd(pend.map(r=>r.id),{status:'已入庫',stockedTs:Date.now()});closeOv();toast(`已標記 ${pend.length} 張為已入庫大禾`);}
+  catch(e){$('bsBtn').disabled=false;toast('❌ 更新失敗，請再試一次');console.error(e);}
 }
 function sumHtmlH(){
   const pend=REQS.filter(r=>isPendH(r)&&(FILT.store==='all'||r.store===FILT.store));
@@ -760,7 +793,8 @@ function adminActs(r){
   if(r.status==='已申請'){const hq=viaOf(r)==='hq';a.push(`<button class="btn sm ghost" onclick="setVia('${id}','${hq?'direct':'hq'}')">改成${hq?'廠商直送':'總部寄出'}</button>`);a.push(`<button class="btn sm dng" onclick="askCancel('${id}',true)">取消</button>`);a.push(hq?`<button class="btn sm blu" onclick="setSt('${id}','已寄出')">標記已寄出</button>`:`<button class="btn sm blu" onclick="setSt('${id}','已訂貨')">標記已訂貨</button>`);}
   else if(r.status==='已寄出'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">退回待寄出</button>`);a.push(`<button class="btn sm ok" onclick="setSt('${id}','已出貨')">標記已到貨</button>`);}
   else if(r.status==='已訂貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">退回待訂貨</button>`);a.push(`<button class="btn sm ok" onclick="setSt('${id}','已出貨')">標記已到貨</button>`);}
-  else if(r.status==='已出貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','${viaOf(r)==='hq'?'已寄出':'已訂貨'}')">退回待到貨</button>`);}
+  else if(r.status==='已出貨'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','${viaOf(r)==='hq'?'已寄出':'已訂貨'}')">退回待到貨</button>`);a.push(`<button class="btn sm stk" onclick="setSt('${id}','已入庫')">標記已入庫大禾</button>`);}
+  else if(r.status==='已入庫'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已出貨')">退回待入庫</button>`);}
   else if(r.status==='已取消'){a.push(`<button class="btn sm ghost" onclick="setSt('${id}','已申請')">恢復申請</button>`);a.push(`<button class="btn sm dng" onclick="askDel('${id}')">刪除</button>`);}
   return a.join('');
 }
@@ -771,14 +805,16 @@ async function setVia(id,v){
 async function setSt(id,st){
   if(!fbReady()){toast('還在連線，請稍候');return;}
   const p={status:st};const now=Date.now();
-  if(st==='已申請'){p.orderedTs=null;p.sentTs=null;p.shippedTs=null;p.cancelTs=null;}
+  if(st==='已申請'){p.orderedTs=null;p.sentTs=null;p.shippedTs=null;p.stockedTs=null;p.cancelTs=null;}
+  if(st==='已入庫')p.stockedTs=now;
+  if(st==='已出貨')p.stockedTs=null;
   if(st==='已寄出'){p.sentTs=now;p.shippedTs=null;}
   if(st==='已訂貨'){p.orderedTs=now;p.shippedTs=null;}
   if(st==='已出貨'){const r=REQS.find(x=>x.id===id);if(r&&viaOf(r)==='hq'){if(!r.sentTs)p.sentTs=now;}else if(r&&!r.orderedTs)p.orderedTs=now;p.shippedTs=now;p.recvBy=IS_ADMIN?'admin':'store';}
   try{await FB.upd(id,p);
-    if(st==='已寄出'&&IS_ADMIN){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'📦 耗材已寄出',`總部已寄出：${itemsBrief(r.items)}，收到請按「已收到」`);}
+    if(st==='已寄出'&&IS_ADMIN){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'📦 耗材已寄出',`總部已寄出：${itemsBrief(r.items)}，貨到了請按「我收到貨了」`);}
     if(st==='已訂貨'&&IS_ADMIN){const r=REQS.find(x=>x.id===id);if(r&&r.store)pushTo(r.store,'🛒 耗材已訂貨',`總部已訂貨，廠商會直接寄到門市：${itemsBrief(r.items)}`);}
-    toast(st==='已寄出'?'已標記：已寄出，門市會收到通知':st==='已訂貨'?'已標記：已訂貨，門市會收到通知':st==='已出貨'?(IS_ADMIN?'已標記：已到貨':'✅ 已確認收到，謝謝'):'已更新');}
+    toast(st==='已入庫'?'已標記：已入庫大禾，這張完成':st==='已寄出'?'已標記：已寄出，門市會收到通知':st==='已訂貨'?'已標記：已訂貨，門市會收到通知':st==='已出貨'?(IS_ADMIN?'已標記：已到貨':'✅ 已確認收到，謝謝'):'已更新');}
   catch(e){toast('❌ 更新失敗，請再試一次');console.error(e);}
 }
 function askBatchOrder(){
@@ -902,7 +938,7 @@ function vStats(){
   const months=[...new Set(REQS.map(r=>monthKey(r.createdTs)))].sort().reverse();
   const cur=monthKey(Date.now());if(!months.includes(cur))months.unshift(cur);
   if(!STAT_MONTH)STAT_MONTH=cur;
-  const rs=REQS.filter(r=>r.status!=='已取消'&&(STAT_SHIPPED?r.status==='已出貨':true)&&monthKey(r.createdTs)===STAT_MONTH);
+  const rs=REQS.filter(r=>r.status!=='已取消'&&(STAT_SHIPPED?(r.status==='已出貨'||r.status==='已入庫'):true)&&monthKey(r.createdTs)===STAT_MONTH);
   const m={};
   rs.forEach(r=>(r.items||[]).forEach(x=>{if(!x.qty)return;const k=x.name;if(!m[k])m[k]={unit:x.unit||'',by:{},t:0};m[k].by[r.store]=(m[k].by[r.store]||0)+x.qty;m[k].t+=x.qty;}));
   const names=Object.keys(m).sort((a,b)=>m[b].t-m[a].t);
