@@ -470,7 +470,7 @@ input[type=text]:focus,input[type=password]:focus,input[type=date]:focus,select:
         </select>
         <select id="sss" onchange="renderAdmin()">
           <option value="">全部狀態</option>
-          <option value="pending">待處理（待覆核＋重複單）</option>
+          <option value="pending" selected>待處理（待覆核＋重複單）</option>
           <option value="待覆核">待覆核</option>
           <option value="已入庫">已入庫</option>
           <option value="重複單">重複單</option>
@@ -503,6 +503,8 @@ input[type=text]:focus,input[type=password]:focus,input[type=date]:focus,select:
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
         <button class="del-btn" onclick="openBatchDel()" style="font-size:12px;padding:5px 12px">🗑️ 批次刪除已入庫</button>
       </div>
+      <div id="admin-searchhint" style="display:none;margin:0 0 10px;padding:9px 14px;border-radius:12px;background:#FFF6EE;color:#9A6A4A;font-size:13px">🔍 搜尋模式：顯示<b>所有狀態、所有日期</b>符合此單號的記錄；清空搜尋即回到原本篩選。</div>
+      <div id="admin-loading" style="display:none;margin:0 0 10px;padding:10px 14px;border-radius:12px;background:#FFF1E6;color:#7A2E0A;font-size:13.5px;font-weight:700">⏳ 載入中…</div>
       <div id="admin-result" style="overflow-x:auto"></div>
     </div>
   </div>
@@ -883,12 +885,21 @@ function setStatRange(type){
   renderStats();
 }
 
-function renderStats(){
+async function renderStats(){
   const el=document.getElementById('stats-content');if(!el)return;
-  const allRecs=getDataRecs();
   const filterStore=document.getElementById('stat-store').value;
   const fromDate=document.getElementById('stat-from').value;
   const toDate=document.getElementById('stat-to').value;
+  // 先把該期間的資料抓回來（預設只載入未入庫，統計需要完整期間）
+  if(window._fbReady && window.adminNeeds){
+    const today=new Date(); const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const scope=(fromDate||toDate)?{kind:'range',from:fromDate||'2024-01-01',to:toDate||fmt(today)}:{kind:'all'};
+    if(window.adminNeeds(scope)){
+      el.innerHTML='<div class="card" style="text-align:center;color:#8A8378;padding:24px">⏳ 載入該期間資料中…</div>';
+      try{ if(scope.kind==='all') await window.loadAll(); else await window.loadRange(scope.from,scope.to); }catch(e){ console.warn(e); }
+    }
+  }
+  const allRecs=getDataRecs();
 
   let f=allRecs.filter(r=>{
     if(filterStore&&r.store!==filterStore)return false;
@@ -986,7 +997,13 @@ function renderStats(){
 }
 
 // ===== 批次刪除 =====
-function openBatchDel(){
+async function openBatchDel(){
+  if(window._fbReady && window.loadAll && window.adminNeeds && window.adminNeeds({kind:'all'})){
+    const el0=document.getElementById('batch-del-content');
+    if(el0) el0.innerHTML='<div style="color:#8A8378;font-size:13px;text-align:center;padding:12px">⏳ 載入全部資料中…</div>';
+    document.getElementById('batch-del-modal').classList.add('open');
+    try{ await window.loadAll(); }catch(e){ console.warn(e); }
+  }
   const allRecs=getDataRecs();
   const done=allRecs.filter(r=>r.status==='已入庫');
   const el=document.getElementById('batch-del-content');
@@ -1023,6 +1040,7 @@ function isOlderThan(dateStr, days){
 async function confirmBatchDel(){
   const sel=document.querySelector('input[name="batch-range"]:checked');
   if(!sel)return;
+  try{ if(window._fbReady && window.loadAll) await window.loadAll(); }catch(e){}
   const allRecs=getDataRecs();
   const done=allRecs.filter(r=>r.status==='已入庫');
   let toDelete=[];
@@ -1035,6 +1053,7 @@ async function confirmBatchDel(){
   const fbIds=toDelete.filter(r=>r.fbId).map(r=>r.fbId);
   if(window.batchDeleteFirebase && fbIds.length){
     await window.batchDeleteFirebase(fbIds);
+    if(window.refreshCounts) window.refreshCounts(true);
   }
   // 本地也清掉
   recs=recs.filter(r=>!toDelete.find(d=>d.id===r.id||d.fbId===r.fbId));
@@ -1091,6 +1110,10 @@ function doLogin(){
   }
 }
 
+function whenPushReady(fn){
+  if(window.registerPush){ setTimeout(fn,400); return; }
+  let t=0; const w=setInterval(()=>{ t++; if(window.registerPush){ clearInterval(w); fn(); } else if(t>60){ clearInterval(w); console.warn('推播模組逾時未載入'); } },500);
+}
 function waitRecs(fn){
   if(window._fbReady && window.recs){fn();return;}
   let t=0;const w=setInterval(()=>{t++;if(window.recs||t>40){clearInterval(w);fn();}},500);
@@ -1110,8 +1133,7 @@ function doAfterLogin(){
     waitRecs(renderHist);
   }
   // 登入後索取通知權限並登記手機
-  // module 比一般 script 晚載入：等 registerPush 定義好再登記（每 0.5 秒看一次，最多 30 秒）
-  (function waitPush(n){ if(window.registerPush){ window.registerPush(); return; } if(n<60) setTimeout(()=>waitPush(n+1),500); })(0);
+  whenPushReady(()=>window.registerPush());   /* 推播模組是 module，會比畫面晚載入；等它好了再登記，不可直接跳過 */
 }
 
 document.getElementById('login-btn').addEventListener('click',doLogin);
@@ -1508,6 +1530,52 @@ function clearTQ(){
   renderAdmin();
 }
 
+/* ══ 總部端：依篩選條件按需載入歷史資料 ══ */
+let _adminLoading=null;   // 進行中的載入 Promise（避免重複觸發）
+function adminScope(o){
+  const search=(o.sno||'').trim().length>=3?(o.sno||'').trim():'';
+  if(search) return {kind:'none',search};   // 搜尋模式：只向資料庫查單號，不載整段歷史
+  const pendingOnly=(o.sss==='pending'||o.sss==='待覆核'||o.sss==='重複單');
+  if(pendingOnly) return {kind:'none',search};
+  if(o.sdFrom||o.sdTo){
+    const today=new Date(); const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    let from=o.sdFrom||'2024-01-01', to=o.sdTo||fmt(today);
+    if(o.stType==='done'){ const d=new Date(from); d.setDate(d.getDate()-45); from=fmt(d); }   // 入庫日期：上傳日可能更早，往前多抓 45 天
+    return {kind:'range',from,to,search};
+  }
+  return {kind:'all',search};
+}
+function setAdminLoading(msg){ const el=document.getElementById('admin-loading'); if(!el) return; if(msg){ el.textContent=msg; el.style.display='block'; } else el.style.display='none'; }
+function ensureAdminData(o){
+  if(!window._fbReady || !window.adminNeeds) return;
+  const s=adminScope(o);
+  if(!window.adminNeeds(s)) return;
+  if(_adminLoading) return;            // 已有載入在跑，跑完會重畫，屆時再評估
+  const label=s.kind==='all'?'載入全部歷史資料（資料較多，請稍候）':s.kind==='range'?`載入 ${s.from} ～ ${s.to} 的資料`:'搜尋單號';
+  setAdminLoading('⏳ '+label+'…');
+  _adminLoading=(async()=>{
+    try{
+      if(s.search && window.searchNo) await window.searchNo(s.search);
+      if(s.kind==='all') await window.loadAll();
+      else if(s.kind==='range') await window.loadRange(s.from,s.to);
+    }catch(e){ console.warn('ensureAdminData',e); }
+  })().finally(()=>{ _adminLoading=null; setAdminLoading(''); renderAdmin(); });
+}
+let _countsTimer=null;
+window.refreshCounts=function(force){
+  if(!window.countStats) return;
+  if(_countsTimer) clearTimeout(_countsTimer);
+  _countsTimer=setTimeout(async()=>{
+    _countsTimer=null;
+    const c=await window.countStats(!!force);
+    if(c && document.getElementById('s-admin').classList.contains('active')){
+      const nums=document.querySelectorAll('#astats .scF .num');
+      if(nums.length===4){ nums[0].textContent=c.pend; nums[1].textContent=c.tot; nums[2].textContent=c.done; nums[3].textContent=c.dup; }
+    }
+  },force?300:0);
+};
+function refreshCounts(force){ window.refreshCounts(force); }
+
 function renderAdmin(){
   const sno=(document.getElementById('sno').value||'').toLowerCase();
   const sst=document.getElementById('sst').value;
@@ -1519,6 +1587,10 @@ function renderAdmin(){
 
   const allRecs = (window._fbReady && window.recs) ? window.recs : recs;
 
+  // 依目前篩選決定要不要向資料庫補抓歷史資料（預設「待處理」完全不用抓）
+  ensureAdminData({sno,sss,stType,sdFrom,sdTo});
+
+  const searchMode=sno.trim().length>=3;   // 搜尋模式：無視狀態與日期篩選，找得到所有符合的單
   const f=allRecs.filter(r=>{
     if(sno&&!r.no.toLowerCase().includes(sno)&&!r.items.some(it=>(it.name+(it.code||'')).toLowerCase().includes(sno)))return false;
     if(sst&&r.store!==sst)return false;
@@ -1526,6 +1598,7 @@ function renderAdmin(){
       if(svd==='twm'&&r.vGroup!=='twm')return false;
       if(svd!=='twm'&&r.vGroup!==svd)return false;
     }
+    if(searchMode) return true;
     if(sss==='pending'&&r.status==='已入庫')return false;
     if(sss&&sss!=='pending'&&r.status!==sss)return false;
     if(sdFrom||sdTo){
@@ -1537,8 +1610,11 @@ function renderAdmin(){
     return true;
   });
 
-  const tot=allRecs.length,done=allRecs.filter(r=>r.status==='已入庫').length;
-  const pend=allRecs.filter(r=>r.status==='待覆核').length,dup=allRecs.filter(r=>r.status==='重複單').length;
+  // 統計卡數字：優先用資料庫聚合計數（不受已載入範圍影響），尚未取得時先用已載入資料
+  const _c=(window.getCountsCached&&window.getCountsCached())||null;
+  const tot=_c?_c.tot:allRecs.length,done=_c?_c.done:allRecs.filter(r=>r.status==='已入庫').length;
+  const pend=_c?_c.pend:allRecs.filter(r=>r.status==='待覆核').length,dup=_c?_c.dup:allRecs.filter(r=>r.status==='重複單').length;
+  if(!_c) refreshCounts();
   const _sv=(document.getElementById('sss')||{}).value||'';
   document.getElementById('astats').innerHTML=`
     <div class="scF scF-hot${_sv==='待覆核'?' scF-on':''}" onclick="filterByStat('待覆核')" style="cursor:pointer"><div class="ic">⏳</div><div><div class="num">${pend}</div><div class="lbl">待覆核 · 要處理</div></div></div>
@@ -1547,7 +1623,7 @@ function renderAdmin(){
     <div class="scF scF-red${_sv==='重複單'?' scF-on':''}" onclick="filterByStat('重複單')" style="cursor:pointer"><div class="ic">⚠️</div><div><div class="num">${dup}</div><div class="lbl">重複單</div></div></div>`;
 
   // 容量提醒（用資料庫全部筆數，不受篩選影響）
-  const totalAll=getDataRecs().length;
+  const totalAll=_c?_c.tot:getDataRecs().length;
   const cw=document.getElementById('cap-warn');
   if(cw){
     if(totalAll>=3500){
@@ -1561,6 +1637,7 @@ function renderAdmin(){
     }
   }
 
+  const sh=document.getElementById('admin-searchhint'); if(sh) sh.style.display=searchMode?'block':'none';
   const el=document.getElementById('admin-result');
   if(!f.length){el.innerHTML='<div style="text-align:center;padding:24px;color:#8A8378;font-size:13px">無符合記錄</div>';return;}
 
@@ -1875,6 +1952,7 @@ async function confirmDel(){
   window._adminDelMode=false;
   const id=delId;
   closeDel();
+  if(isAdminDel && window.refreshCounts) setTimeout(()=>window.refreshCounts(true),1200);
 
   // 門市刪除
   if(typeof id==='string' && id.startsWith('store-')){
@@ -2092,7 +2170,7 @@ try{
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, orderBy, where, limit, Timestamp, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging.js";
 
 const firebaseConfig = {
@@ -2114,6 +2192,20 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOfnIJOxzCE5Sl
 const SW_PATH = "/telecom-invoice/firebase-messaging-sw.js";
 const SW_SCOPE = "/telecom-invoice/";
 
+// 「開啟通知」提示條：權限尚未決定時出現，點一下就請求權限並登記
+function showPushBanner(){
+  if(document.getElementById('push-banner')) return;
+  const scr=document.querySelector('.screen.active .page'); if(!scr) return;
+  const b=document.createElement('div'); b.id='push-banner';
+  b.style.cssText='display:flex;align-items:center;gap:10px;justify-content:space-between;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#FFF1E6;border:1.5px solid #F3D3BC;color:#7A2E0A;font-size:14px;font-weight:700';
+  b.innerHTML='<span>🔔 開啟通知，有新進貨單／入庫時手機會跳提醒</span><button class="mbtn" style="flex-shrink:0;font-size:14px;padding:8px 14px;min-height:auto;background:var(--primary);color:#fff;border-color:var(--primary)">開啟</button>';
+  b.querySelector('button').onclick=async()=>{
+    try{ const r=await Notification.requestPermission(); if(r==='granted'){ await window.registerPush(); } else { hidePushBanner(); } }catch(e){ console.warn(e); }
+  };
+  scr.insertBefore(b, scr.firstChild);
+}
+function hidePushBanner(){ const b=document.getElementById('push-banner'); if(b) b.remove(); }
+
 // 登入後：索取通知權限、登記這支手機
 window.registerPush = async function(){
   try{
@@ -2122,7 +2214,8 @@ window.registerPush = async function(){
     const swReg = await navigator.serviceWorker.register(SW_PATH, {scope: SW_SCOPE});
     let perm = Notification.permission;
     if(perm==='default') perm = await Notification.requestPermission();
-    if(perm!=='granted'){ console.log('使用者未允許通知'); return; }
+    if(perm==='default'){ showPushBanner(); return; }   // iPhone 需要使用者親手點一下才能開通知
+    if(perm!=='granted'){ console.log('使用者未允許通知'); hidePushBanner(); return; }
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
     if(!token) return;
     const owner = (cu.role==='admin') ? 'admin' : cu.store;
@@ -2133,6 +2226,8 @@ window.registerPush = async function(){
       await updateDoc(doc(db,'pushTokens', snap.docs[0].id), { owner, updatedAt: serverTimestamp() });
     }
     console.log('推播已註冊：'+owner);
+    hidePushBanner();
+    window._pushOK=true;
   }catch(e){ console.warn('registerPush 失敗:', e); }
 };
 
@@ -2199,13 +2294,23 @@ function startListen(){
     const now=new Date(), next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,5);
     _midnightTimer=setTimeout(()=>{ _midnightTimer=null; startListen(); }, next-now);
   } else {
-    q=query(collection(db,'invoices'), orderBy('createdAt','desc'));
+    // 總部端：只即時監聽「未入庫」（待覆核＋重複單）；歷史資料依篩選條件按需載入（loadRange / loadAll / searchNo）
+    q=query(collection(db,'invoices'), where('status','in',['待覆核','重複單']));
   }
   try{
     _unsub=onSnapshot(q,(snapshot)=>{
       _live=snapshot.docs.map(d=>({fbId:d.id, ...d.data()}));
+      // 離開即時集合的文件（例如剛入庫），若已在按需載入的集合裡，補抓最新內容
+      try{
+        snapshot.docChanges().forEach(ch=>{
+          if(ch.type==='removed' && _extra.has(ch.doc.id)){
+            getDoc(doc(db,'invoices',ch.doc.id)).then(s=>{ if(s.exists()) _extra.set(s.id,{fbId:s.id,...s.data()}); else _extra.delete(ch.doc.id); _rebuildRecs(); _rerender(); }).catch(()=>{});
+          }
+        });
+      }catch(e){}
       _rebuildRecs();
       _rerender();
+      if(u.role==='admin' && window.refreshCounts) window.refreshCounts(true);
     },(err)=>{
       console.error('Firebase 監聽失敗:',err);
       // 安全網：門市窗口查詢若失敗，退回全量載入，確保畫面不會空白
@@ -2227,6 +2332,7 @@ function stopListen(){
   if(_unsub){ try{_unsub();}catch(e){} _unsub=null; }
   if(_midnightTimer){ clearTimeout(_midnightTimer); _midnightTimer=null; }
   _liveDays.clear(); _extra.clear(); _live=[]; window.recs=undefined;
+  _allLoaded=false; _ranges.length=0; _searched.clear(); _counts=null;
 }
 window.startListen=startListen;
 window.stopListen=stopListen;
@@ -2242,6 +2348,55 @@ window.loadStoreDay=async function(dateStr){
   _rebuildRecs();
   return true;
 };
+
+// ══ 總部端按需載入 API ══
+let _allLoaded=false; const _ranges=[]; const _searched=new Set(); let _counts=null, _countsAt=0, _countsP=null;
+const _dayStart=s=>{const p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2],0,0,0,0);};
+const _dayEnd=s=>{const p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2],23,59,59,999);};
+function _covered(fromMs,toMs){ if(_allLoaded) return true; return _ranges.some(r=>r.from<=fromMs && r.to>=toMs); }
+async function _pull(q){ const s=await getDocs(q); s.docs.forEach(d=>_extra.set(d.id,{fbId:d.id,...d.data()})); _rebuildRecs(); return s.size; }
+// 需不需要去抓？（同步判斷，給畫面決定要不要顯示「載入中」）
+window.adminNeeds=function(scope){
+  if(!scope) return false;
+  if(scope.search && !_searched.has(scope.search)) return true;
+  if(scope.kind==='all') return !_allLoaded;
+  if(scope.kind==='range'){ const f=_dayStart(scope.from).getTime(), t=_dayEnd(scope.to).getTime(); return !_covered(f,t); }
+  return false;
+};
+// 載入某段上傳日期區間（createdAt 範圍，單欄位，不需複合索引）
+window.loadRange=async function(fromDash,toDash){
+  const f=_dayStart(fromDash), t=_dayEnd(toDash);
+  if(_covered(f.getTime(),t.getTime())) return false;
+  await _pull(query(collection(db,'invoices'), where('createdAt','>=',Timestamp.fromDate(f)), where('createdAt','<=',Timestamp.fromDate(t)), orderBy('createdAt','desc')));
+  _ranges.push({from:f.getTime(),to:t.getTime()});
+  return true;
+};
+window.loadAll=async function(){
+  if(_allLoaded) return false;
+  await _pull(query(collection(db,'invoices'), orderBy('createdAt','desc')));
+  _allLoaded=true; return true;
+};
+// 單號搜尋：直接查資料庫（開頭符合；同時試原樣與大寫）
+window.searchNo=async function(prefix){
+  prefix=String(prefix||'').trim(); if(prefix.length<3 || _searched.has(prefix)) return false;
+  _searched.add(prefix);
+  const vars=[...new Set([prefix,prefix.toUpperCase()])];
+  for(const v of vars){ try{ await _pull(query(collection(db,'invoices'), where('no','>=',v), where('no','<=',v+'\uf8ff'), limit(200))); }catch(e){ console.warn('searchNo',e); } }
+  return true;
+};
+// 統計卡／容量提醒用的計數（資料庫聚合，不下載資料）；快取 20 秒
+window.countStats=async function(force){
+  if(!force && _counts && Date.now()-_countsAt<20000) return _counts;
+  if(_countsP) return _countsP;
+  _countsP=(async()=>{
+    const col=collection(db,'invoices');
+    const c=async q=>(await getCountFromServer(q)).data().count;
+    const [tot,done,pend,dup]=await Promise.all([c(col),c(query(col,where('status','==','已入庫'))),c(query(col,where('status','==','待覆核'))),c(query(col,where('status','==','重複單')))]);
+    _counts={tot,done,pend,dup}; _countsAt=Date.now(); _countsP=null; return _counts;
+  })().catch(e=>{ _countsP=null; console.warn('countStats',e); return null; });
+  return _countsP;
+};
+window.getCountsCached=()=>_counts;
 if(window.cu) startListen();
 
 // 照片壓縮（存入 Firestore，壓縮到 200KB 以內）
@@ -2308,8 +2463,10 @@ window.markDoneFirebase = async function(fbId){
   await updateDoc(doc(db,'invoices',fbId),{
     status:'已入庫',
     doneTime: now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),
-    doneDate: formatDate(now)
+    doneDate: formatDate(now),
+    doneAt: serverTimestamp()
   });
+  if(window.refreshCounts) setTimeout(()=>window.refreshCounts(true),800);
   // 通知該門市：單據已入庫
   try{
     const rec=(window.recs||[]).find(r=>r.fbId===fbId);

@@ -818,7 +818,10 @@ function shortenCore(name){
   s=s.replace(/Apple\s*(?:原廠)?\s*(AirPods)/gi,'$1');
   s=s.replace(/(AirPods[\w\s]*?)\s*(降噪)?耳機/g,(m,a,n)=>a.trim()+(n?' 降噪':''));
   /* 3. 移除與系列重複的型號全碼 */
-  s=s.replace(/\s+[A-Z]{0,2}\d{3,}[A-Z]{0,3}(?=[\s_]*\d+\s*GB?\s*\/)/g,'');
+  /* 只刪「前面已經有機型」的料號（Galaxy A17 A1760_6GB…）；單獨的機型如 vivo X500、Pixel 10 要保留 */
+  s=s.replace(/\s+[A-Z]{0,2}\d{3,}[A-Z]{0,3}(?=[\s_]*\d+\s*GB?\s*\/)/g,(m,off,str)=>{
+    return /[A-Za-z]\d|\d[A-Za-z+]/.test(str.slice(0,off))?'':m;
+  });
   /* 只刪「前面已經有機型」的料號（A57 A576BE、S26 Ultra S9480）；單獨出現的型號如 realme X50 要保留 */
   s=s.replace(/\s+([A-Z]+\d{2,}[A-Z]*)(?=\s+[\u4e00-\u9fff])/g,(m,code,off,str)=>{
     const before=str.slice(0,off);
