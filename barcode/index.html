@@ -1830,7 +1830,9 @@ function groupByDate(batches){
     g[k].batches.push(b);
     for(const it of b.items) g[k].items.push(Object.assign({},it,{docno:b.docno,store:b.store}));
   }
-  return order.map(k=>g[k]);
+  /* 依到貨日期新→舊排（不能照發布先後：補發布舊日期的貨時，舊日期會跑到最上面） */
+  const dnum=s=>{const m=String(s).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);return m?(+m[1])*10000+(+m[2])*100+(+m[3]):0;};
+  return order.map(k=>g[k]).sort((a,b)=>dnum(b.date)-dnum(a.date));
 }
 function dayHeader(d){
   return '<div class="bhead"><span style="font-size:15px">📅 <b style="color:var(--ink)">'+esc(d.date)+' 到貨</b>，共 <b style="color:var(--ink)">'+d.items.length+'</b> 項商品</span>'
