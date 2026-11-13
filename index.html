@@ -239,6 +239,25 @@ button.primary:active{background:#B83D10}
 @keyframes cSwing{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
 @keyframes cSwingBig{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
 @media (prefers-reduced-motion:reduce){.mwrap .rig g{animation:none!important}}
+/* 推播：開啟通知提示條、總部發公告 */
+.pushbar{display:flex;align-items:center;gap:12px;justify-content:space-between;max-width:860px;margin:0 auto 16px;padding:12px 16px;border-radius:14px;background:#FFF1E6;border:1.5px solid #F3D3BC;color:#7A2E0A;font-size:15px;font-weight:700;line-height:1.5}
+.pushbar[hidden]{display:none}
+.pushbar span{flex:1;min-width:0}
+.pushbar button{flex:none;background:var(--brand);border-color:var(--brand);color:#fff;font-weight:800;padding:9px 18px}
+.pushbar.muted{background:#F6F1EC;border-color:#E6D9CB;color:#6E6A62;font-weight:500}
+.noticeRow{display:flex;justify-content:center;margin-top:18px}
+.noticeRow[hidden]{display:none}
+.noticeRow button{font-weight:800;padding:12px 22px;border-radius:14px;background:#fff;border:1.5px solid #F3D3BC;color:#C9440F;box-shadow:0 4px 0 #F3D3BC}
+.nmask{position:fixed;inset:0;background:rgba(28,27,25,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.nbox{background:#fff;border-radius:20px;padding:22px;width:min(460px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.nbox h4{margin:0 0 6px;font-size:20px}
+.nbox .sub{margin:0 0 14px;color:var(--ink2);font-size:13.5px}
+.nbox textarea{width:100%;box-sizing:border-box;min-height:96px;border:1.5px solid var(--rule);border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;resize:vertical}
+.nbox .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.nbox .chips label{display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--rule);border-radius:999px;font-size:14px;cursor:pointer}
+.nbox .chips label.on{border-color:var(--brand);background:#FFF1E6;color:#C9440F;font-weight:700}
+.nbox .chips input{display:none}
+.nbox .btnrow{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
 </style>
 </head>
 <body>
@@ -295,12 +314,15 @@ button.primary:active{background:#B83D10}
   <div class="sec">
     <h3 id="menuTitle">要做什麼？</h3>
     <p class="hint">點進去就是了，不用再輸密碼。</p>
+    <div class="pushbar" id="pushBar" hidden></div>
     <div class="grid two" id="menuGrid"></div>
+    <div class="noticeRow" id="noticeRow" hidden><button id="noticeBtn">📢 發通知給門市</button></div>
   </div>
 </section>
 
 </main>
 <div class="toast" id="toast"></div>
+<script src="/push.js"></script>
 <script>
 /* ══════════ 設定 ══════════
    1. 雲端登入：跟「到貨貼標」用同一個 Supabase 專案（同一組帳號密碼）。留空 = 本機測試模式。
@@ -415,7 +437,10 @@ function render(){
     $('menuGrid').querySelectorAll('[data-url]').forEach(b=>b.onclick=()=>{ssoSave();location.href=b.dataset.url;});
     if(r==='store'){if(!acting)markNewArrival(nm);}   /* 總部代看門市：不顯示到貨紅標（數字是這台電腦累積的，不是門市的） */
     else markSupply();
-    ssoSave();show('menu');return;
+    $('noticeRow').hidden=!(admin&&!acting);
+    ssoSave();show('menu');
+    pushSetup(acting?'':(admin?'admin':STORE_KEYS[AUTH.store]));
+    return;
   }
   if(VIEW==='gate'){
     $('badge').textContent=GATESTORE?STORE_KEYS[GATESTORE]:'總部';
@@ -476,6 +501,60 @@ async function markSupply(){
     b2.appendChild(t);
   }catch(e){console.warn('耗材待處理數讀取失敗',e);}
 }
+/* ══════════ 推播：這台裝置登記收通知、總部發公告 ══════════ */
+async function pushSetup(owner){
+  const bar=$('pushBar');bar.hidden=true;
+  if(!window.EMOPUSH||!owner)return;
+  let st=EMOPUSH.state();
+  if(st==='granted'){EMOPUSH.register(owner,false);return;}   /* 已允許：每次打開順便更新登記 */
+  if(st==='default'){
+    bar.className='pushbar';
+    bar.innerHTML='<span>🔔 開啟通知：'+(owner==='admin'?'門市上傳、申請':'到貨標籤、耗材、總部公告')+'時，手機會跳提醒，圖示上也會出現數字</span><button id="pushOn">開啟</button>';
+    bar.hidden=false;
+    $('pushOn').onclick=async()=>{$('pushOn').disabled=true;$('pushOn').textContent='設定中…';
+      const r=await EMOPUSH.register(owner,true);
+      if(r==='granted'){bar.hidden=true;toast('✅ 通知已開啟');}
+      else if(r==='denied'){pushSetup(owner);}
+      else{$('pushOn').disabled=false;$('pushOn').textContent='開啟';toast('通知開啟失敗，請稍後再試');}};
+    return;
+  }
+  if(st==='ios-browser'){
+    bar.className='pushbar muted';
+    bar.innerHTML='<span>📱 要收通知，請從手機主畫面的「倚盟工具箱」圖示打開（在 Safari 裡收不到）。</span>';
+    bar.hidden=false;return;
+  }
+  if(st==='denied'){
+    bar.className='pushbar muted';
+    bar.innerHTML='<span>🔕 這台裝置的通知被關掉了。'+(EMOPUSH.isIOS()?'到「設定 → 通知 → 倚盟工具箱」打開。':'到瀏覽器網址列左邊的設定，把「通知」改成允許。')+'</span>';
+    bar.hidden=false;return;
+  }
+}
+function openNotice(){
+  const keys=Object.keys(STORE_KEYS);
+  const m=document.createElement('div');m.className='nmask';
+  m.innerHTML='<div class="nbox"><h4>📢 發通知給門市</h4><p class="sub">門市手機會跳出通知，工具箱圖示上也會出現數字。</p>'
+    +'<textarea id="nText" maxlength="120" placeholder="例：玻璃貼速查表更新了，打開工具箱就能查"></textarea>'
+    +'<div class="chips" id="nStores">'+keys.map(k=>'<label class="on"><input type="checkbox" value="'+k+'" checked>'+esc(STORE_KEYS[k])+'</label>').join('')+'</div>'
+    +'<div class="btnrow"><button id="nCancel">取消</button><button class="primary" id="nSend">發送</button></div></div>';
+  document.body.appendChild(m);
+  const close=()=>m.remove();
+  m.onclick=e=>{if(e.target===m)close();};
+  $('nCancel').onclick=close;
+  m.querySelectorAll('.chips input').forEach(c=>c.onchange=()=>c.parentNode.classList.toggle('on',c.checked));
+  setTimeout(()=>$('nText').focus(),50);
+  $('nSend').onclick=async()=>{
+    const body=$('nText').value.trim();
+    const stores=[...m.querySelectorAll('.chips input:checked')].map(c=>STORE_KEYS[c.value]);
+    if(!body){toast('請先打通知內容');return;}
+    if(!stores.length){toast('請至少選一間店');return;}
+    if(!confirm('確定發送？\n\n'+stores.join('、')+'\n「'+body+'」'))return;
+    $('nSend').disabled=true;$('nSend').textContent='發送中…';
+    const n=window.EMOPUSH?await EMOPUSH.send(stores,'📢 總部公告',body):-1;
+    if(n>0){toast('✅ 已送到 '+n+' 台裝置');close();}
+    else{toast(n===0?'這幾間店還沒有手機開啟通知':'發送失敗，請確認網路再試一次');$('nSend').disabled=false;$('nSend').textContent='發送';}
+  };
+}
+$('noticeBtn').onclick=openNotice;
 function setAct(k){ACT=STORE_KEYS[k]?k:'';ssoSave();render();toast(ACT?('已切換成 '+STORE_KEYS[ACT]+' 的畫面'):'已切回總部');}
 $('actSel').onchange=e=>setAct(e.target.value);
 $('hqLink').onclick=e=>{e.preventDefault();GATESTORE='';VIEW='gate';render();};
