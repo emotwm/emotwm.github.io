@@ -643,6 +643,7 @@ footer .cnt strong{color:var(--brand)}
 </div></div>
 <div class="toast" id="toast"></div>
 <div id="sheet"></div>
+<script src="/push.js"></script>
 <script>
 window.addEventListener('error',e=>{
   const t=document.getElementById('toast'); if(!t)return;
@@ -1536,6 +1537,8 @@ async function doPublish(storeName,silent){
     try{await DB.publish(storeName,items,docno,replaceId);total+=items.length;}
     catch(e){toast('發布失敗：'+e.message);}
   }
+  /* 發布成功 → 通知該店手機（圖示上會出現數字） */
+  if(total&&window.EMOPUSH)EMOPUSH.send(storeName,'📦 到貨標籤更新了',total+' 筆商品的標籤可以印了，點這裡打開到貨貼標');
   return total;
 }
 /* 總部直接列印：把目前店點的商品放進列印佇列，走跟門市一樣的列印流程（選人員＋密碼、記錄、重複警示） */
