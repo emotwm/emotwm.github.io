@@ -679,7 +679,7 @@ function baseRows(){
   const nm = BASE.nm || {}, ct = BASE.ct || {}, seen = BASE.seen || {};
   return Object.keys(BASE.qty).map(code=>({
     code, name: nm[code] || '', cat: ct[code] || '',
-    qty: Number(BASE.qty[code]) || 0, seen: seen[code] || ''
+    qty: Number(BASE.qty[code]) || 0, seen: seen[code] ? fdate(seen[code]) : ''
   }));
 }
 function paintBase(){
@@ -693,7 +693,7 @@ function paintBase(){
   if(q) rows = rows.filter(r=>
     r.code.toLowerCase().indexOf(q) >= 0 || r.name.toLowerCase().indexOf(q) >= 0);
   rows.sort((a,b)=> (a.cat||'').localeCompare(b.cat||'') || (a.name||'').localeCompare(b.name||''));
-  meta.textContent = BASE_STORE + '　盤點日 ' + (BASE.at || '—') + '　共 ' + total + ' 項'
+  meta.textContent = BASE_STORE + '　盤點日 ' + (BASE.at ? fdate(BASE.at) : '—') + '　共 ' + total + ' 項'
                    + (q ? '　符合 ' + rows.length + ' 項' : '');
   const show = rows.slice(0, BASE_MAX);
   tb.innerHTML = show.map(r=>`<tr>
