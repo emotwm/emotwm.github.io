@@ -194,7 +194,7 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
       <div class="bmeta">
         <span id="mMonth"></span>
         <span id="mCount"></span>
-        <span style="color:#9AA1AA">版本 2026-11-02</span>
+        <span style="color:#9AA1AA">版本 2026-11-19</span>
       </div>
     </div>
     <a class="logout" href="/" title="回倚盟工具箱">☰ 工具箱</a>
@@ -210,6 +210,31 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
       <span style="font-size:12px;color:var(--muted)" id="lastSync"></span>
     </div>
   </div>
+
+  <details class="card" id="baseCard">
+    <summary style="cursor:pointer;font-size:14px;font-weight:800;list-style:none">
+      🔎 查上次盤點的庫存
+      <span style="font-weight:500;color:var(--muted);font-size:12.5px">
+        （每間店最後一次盤點當下的電腦庫存，找東西少掉時用）</span>
+    </summary>
+    <div class="bar" style="margin-top:10px">
+      <select id="bStore" style="padding:7px 9px;border:1px solid var(--line);border-radius:8px"></select>
+      <button class="btn go" onclick="loadBase()">查詢</button>
+      <input id="bQ" placeholder="搜尋品名或商品編號" oninput="paintBase()"
+             style="flex:1;min-width:180px;padding:7px 9px;border:1px solid var(--line);border-radius:8px">
+      <span style="font-size:12px;color:var(--muted)" id="bMeta"></span>
+    </div>
+    <div class="tbl" style="margin-top:10px">
+      <table>
+        <thead><tr>
+          <th>商品編號</th><th>品名</th><th>大類</th>
+          <th class="c-num">當時電腦庫存</th><th>最後盤到</th>
+        </tr></thead>
+        <tbody id="bTb"></tbody>
+      </table>
+      <div class="empty" id="bEmpty">選門市後按「查詢」</div>
+    </div>
+  </details>
 
   <div class="card">
     <div class="ktabs" id="kindTabs"></div>
@@ -248,6 +273,7 @@ let TOKEN = '', ROWS = [], ALL = [];
 /* ── 登入 ── */
 /* 進主畫面。SSO 進來時不等後台回應,先進去再載資料 */
 function enterApp(){
+  fillBaseStores();
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='';
   const d=new Date();
@@ -615,6 +641,77 @@ function toCsv(){
 
 /* ── 小工具 ── */
 function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ══════════ 查上次盤點的庫存 ══════════
+   後台「基準」分頁存的是每間店「最後一次」盤完上傳當下的整份電腦庫存。
+   一間店再盤一次就會被蓋掉,所以這裡看到的永遠是最近那一次。            */
+let BASE = null, BASE_STORE = '';
+const BASE_MAX = 400;                 /* 一次最多畫幾列,太多會卡 */
+
+function fillBaseStores(){
+  const sel = document.getElementById('bStore');
+  if(!sel || sel.options.length) return;
+  sel.innerHTML = STORES.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+}
+async function loadBase(){
+  const sel = document.getElementById('bStore');
+  const store = sel ? sel.value : '';
+  const em = document.getElementById('bEmpty'), tb = document.getElementById('bTb');
+  if(!store) return;
+  tb.innerHTML = ''; em.style.display='block'; em.textContent='載入中…';
+  document.getElementById('bMeta').textContent = '';
+  try{
+    const j = await api('base', {store});
+    BASE = j.base || null; BASE_STORE = store;
+    if(!BASE || !BASE.qty || !Object.keys(BASE.qty).length){
+      BASE = null;
+      em.textContent = store + '還沒有資料。要等這間店用新版 App 盤完上傳一次才會有。';
+      return;
+    }
+    paintBase();
+  }catch(e){
+    BASE = null;
+    em.textContent = '讀不到：' + (e && e.message ? e.message : e);
+  }
+}
+function baseRows(){
+  if(!BASE) return [];
+  const nm = BASE.nm || {}, ct = BASE.ct || {}, seen = BASE.seen || {};
+  return Object.keys(BASE.qty).map(code=>({
+    code, name: nm[code] || '', cat: ct[code] || '',
+    qty: Number(BASE.qty[code]) || 0, seen: seen[code] || ''
+  }));
+}
+function paintBase(){
+  const tb = document.getElementById('bTb'), em = document.getElementById('bEmpty');
+  const meta = document.getElementById('bMeta');
+  if(!BASE){ return; }
+  const q = (document.getElementById('bQ').value || '').trim().toLowerCase();
+  let rows = baseRows();
+  const total = rows.length;
+  const hasName = rows.some(r=>r.name);
+  if(q) rows = rows.filter(r=>
+    r.code.toLowerCase().indexOf(q) >= 0 || r.name.toLowerCase().indexOf(q) >= 0);
+  rows.sort((a,b)=> (a.cat||'').localeCompare(b.cat||'') || (a.name||'').localeCompare(b.name||''));
+  meta.textContent = BASE_STORE + '　盤點日 ' + (BASE.at || '—') + '　共 ' + total + ' 項'
+                   + (q ? '　符合 ' + rows.length + ' 項' : '');
+  const show = rows.slice(0, BASE_MAX);
+  tb.innerHTML = show.map(r=>`<tr>
+      <td style="font-family:ui-monospace,monospace;font-size:12.5px">${esc(r.code)}</td>
+      <td>${r.name ? esc(r.name) : '<span style="color:#9AA1AA">（舊資料沒有品名）</span>'}</td>
+      <td style="color:var(--muted);font-size:12.5px">${esc(r.cat)}</td>
+      <td class="c-num"><b>${r.qty}</b></td>
+      <td style="color:var(--muted);font-size:12.5px">${esc(r.seen) || '—'}</td>
+    </tr>`).join('');
+  if(!rows.length){
+    em.style.display='block';
+    em.textContent = hasName ? '找不到符合的品項。' :
+      '這間店的資料是改版前存的,只有商品編號沒有品名 —— 請改用商品編號搜尋。';
+  }else{
+    em.style.display = rows.length > BASE_MAX ? 'block' : 'none';
+    if(rows.length > BASE_MAX) em.textContent = '只顯示前 ' + BASE_MAX + ' 項,請再縮小搜尋範圍。';
+  }
+}
 function num(x){ const n=Number(x); return isNaN(n)?0:n; }
 let tmr;
 function toast(t){
