@@ -1,0 +1,28 @@
+name: Supabase keep-alive
+
+# 每天台灣時間 11:00 對 Supabase 發一次請求，避免免費方案閒置 7 天自動暫停
+on:
+  schedule:
+    - cron: "0 3 * * *"   # UTC 03:00 = 台北 11:00
+  workflow_dispatch:       # 也可以在 Actions 頁面手動按 Run workflow 測試
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: https://mzxotnksydazewxpvjmu.supabase.co
+          SUPABASE_KEY: sb_publishable_-v1PBd0kCXJQozk1bed2Cg_t7Tr3E82   # 與 index.html 相同的公開金鑰
+        run: |
+          check () {
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 30 "$1" -H "apikey: $SUPABASE_KEY" || echo 000)
+            echo "$2 → HTTP $code"
+            if [ "$code" = "000" ] || [ "$code" -ge 500 ]; then
+              echo "::error::$2 連不上（專案可能被暫停，請到 Supabase 按 Resume）"
+              exit 1
+            fi
+          }
+          check "$SUPABASE_URL/auth/v1/settings" "Auth 服務"
+          check "$SUPABASE_URL/rest/v1/rules?select=*&limit=1" "資料庫"
+          echo "OK - $(date -u '+%Y-%m-%d %H:%M UTC')"
