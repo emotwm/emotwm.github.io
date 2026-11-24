@@ -177,6 +177,19 @@ textarea.inp{min-height:68px;resize:vertical}
 .rq-meta{font-size:12.5px;color:var(--muted);margin-top:7px;line-height:1.65}
 .rq-meta b{color:var(--ink);font-weight:700}
 .rq-hq{margin-top:7px;background:var(--s2-bg);color:var(--s2);border-radius:9px;padding:6px 10px;font-size:13px}
+.picbox{margin-top:12px;border:1.5px dashed #9CC9B2;background:#F2FAF6;border-radius:12px;padding:10px 12px}
+.pichead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:14px}
+.pichead span{font-size:12px;color:var(--muted)}
+.pics{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.pics:empty{margin:4px 0}
+.pic{position:relative;width:76px;height:76px}
+.pic img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
+.pic button{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:50%;border:0;background:#2B1D14;color:#fff;font-size:15px;line-height:1;padding:0}
+.picbtn{display:inline-block;background:#fff;border-color:#9CC9B2;color:var(--s3);font-size:14px}
+.phbtn{margin-top:8px;background:#F2FAF6;border-color:#9CC9B2;color:var(--s3)}
+.phlist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.phlist img{width:100%;max-height:60vh;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:#F6F3EF;cursor:zoom-in}
+.phlist img.big{max-height:none;cursor:zoom-out}
 .recvbox{flex:1 1 100%;display:flex;align-items:center;gap:12px;background:#FFF3E0;border:1.5px dashed #F2B48F;border-radius:12px;padding:10px 12px;font-size:13.5px;color:#8A3A10;line-height:1.55;text-align:left}
 .recvbox span{flex:1;min-width:0}
 .recvbox b{font-size:15px;color:var(--ink)}
@@ -314,7 +327,7 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.12a';
+const VER='2026.11.24a';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨','已入庫'];
 const DEFAULT_ITEMS=[
@@ -607,6 +620,8 @@ function rqCard(r,admin){
   if((r.status==='已出貨'||r.status==='已入庫')&&r.shippedTs)meta.push(`${r.recvBy==='store'?'門市確認收到':'總部標記到貨'} ${fmtDT(r.shippedTs)}`);
   if(meta.length)h+=`<div class="rq-meta">${meta.join('<br>')}</div>`;
   if(r.hqNote)h+=`<div class="rq-hq">總部：${esc(r.hqNote)}</div>`;
+  if(r.photoCount)h+=`<button class="btn sm phbtn" onclick="showPhotos('${r.id}')">📷 看收貨單（${r.photoCount} 張）</button>`;
+  else if(admin&&(r.status==='已出貨'||r.status==='已入庫'))h+=`<div class="hint" style="margin-top:6px">門市沒有附收貨單照片</div>`;
   const acts=admin?adminActs(r):storeActs(r);
   if(acts)h+=`<div class="rq-act">${acts}</div>`;
   return h+'</div>';
@@ -623,11 +638,70 @@ function itemsBrief(items){
   return t.length>60?t.slice(0,58)+'…':t;
 }
 function pushTo(owner,title,body){if(fbReady()&&FB.push)FB.push(owner,title,body);}
+/* ── 收貨單照片：壓成 JPEG（長邊 1600、約 150～400KB），一張一筆存在 supplyPhotos，不塞進申請單，清單才不會變慢 ── */
+let RECV_PICS=[];
 function askRecv(id){
   const r=REQS.find(x=>x.id===id);if(!r)return;
+  RECV_PICS=[];
   openOv(`<h3>確認收到這些耗材？</h3><div class="cfl">${(r.items||[]).filter(x=>x.qty).map(x=>`<div><span>${esc(x.name)}</span><b>× ${x.qty} ${esc(uD(x.unit))}</b></div>`).join('')}</div>
+    <div class="picbox">
+      <div class="pichead"><b>📷 拍收貨單</b><span>出貨單、簽收單都可以，最多 4 張</span></div>
+      <div class="pics" id="recvPics"></div>
+      <label class="btn picbtn" id="picBtn">＋ 拍照／選照片<input type="file" accept="image/*" capture="environment" multiple onchange="addRecvPics(this)" style="display:none"></label>
+    </div>
     <div class="hint" style="margin-top:8px">東西有少或寄錯，先不要按，直接跟總部說。</div>
-    <div class="ov-foot"><button class="btn" onclick="closeOv()">還沒收到</button><button class="btn ok" onclick="closeOv();setSt('${id}','已出貨')">都收到了</button></div>`);
+    <div class="ov-foot"><button class="btn" onclick="closeOv()">還沒收到</button><button class="btn ok" id="recvGo" onclick="doRecv('${id}')">都收到了，送出</button></div>`);
+  drawRecvPics();
+}
+function drawRecvPics(){
+  const box=$('recvPics');if(!box)return;
+  box.innerHTML=RECV_PICS.map((d,i)=>`<div class="pic"><img src="${d}" alt="收貨單照片 ${i+1}"><button onclick="RECV_PICS.splice(${i},1);drawRecvPics()" aria-label="刪除這張">×</button></div>`).join('');
+  const b=$('picBtn');if(b)b.style.display=RECV_PICS.length>=4?'none':'';
+}
+function shrinkImg(file){
+  return new Promise((ok,bad)=>{
+    const u=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{
+      let w=im.naturalWidth,h=im.naturalHeight,M=1600;
+      if(Math.max(w,h)>M){const k=M/Math.max(w,h);w=Math.round(w*k);h=Math.round(h*k);}
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);
+      URL.revokeObjectURL(u);
+      let q=0.72,d=c.toDataURL('image/jpeg',q);
+      while(d.length>700000&&q>0.35){q-=0.1;d=c.toDataURL('image/jpeg',q);}
+      ok(d);
+    };
+    im.onerror=()=>{URL.revokeObjectURL(u);bad(new Error('讀不到這張照片'));};
+    im.src=u;
+  });
+}
+async function addRecvPics(inp){
+  const fs=[...(inp.files||[])];inp.value='';
+  for(const f of fs){
+    if(RECV_PICS.length>=4){toast('最多 4 張');break;}
+    try{RECV_PICS.push(await shrinkImg(f));drawRecvPics();}catch(e){toast('❌ '+e.message);}
+  }
+}
+async function doRecv(id){
+  if(!fbReady()){toast('還在連線，請稍候');return;}
+  const r=REQS.find(x=>x.id===id);if(!r)return;
+  const b=$('recvGo');b.disabled=true;b.textContent=RECV_PICS.length?'上傳照片中…':'送出中…';
+  try{
+    if(RECV_PICS.length)await FB.addPhotos(id,r.store,RECV_PICS);
+    await setSt(id,'已出貨',{photoCount:(r.photoCount||0)+RECV_PICS.length});
+    RECV_PICS=[];closeOv();
+  }catch(e){
+    console.error(e);b.disabled=false;b.textContent='重新送出';
+    toast('❌ 照片上傳失敗，請檢查網路再按一次',4000);
+  }
+}
+async function showPhotos(id){
+  const r=REQS.find(x=>x.id===id);
+  openOv(`<h3>${esc(r?r.store:'')} 收貨單</h3><div class="hint" id="phLoad">讀取中…</div><div class="phlist" id="phList"></div><div class="ov-foot"><button class="btn" onclick="closeOv()">關閉</button></div>`);
+  try{
+    const list=await FB.getPhotos(id);
+    $('phLoad').textContent=list.length?`共 ${list.length} 張・點照片可以放大`:'找不到照片';
+    $('phList').innerHTML=list.map((d,i)=>`<img src="${d}" alt="收貨單 ${i+1}" onclick="this.classList.toggle('big')">`).join('');
+  }catch(e){console.error(e);$('phLoad').textContent='❌ 讀取失敗，請稍後再試';}
 }
 function storeActs(r){
   if(r.status==='已申請')return `<button class="btn sm dng" onclick="askCancel('${r.id}',false)">取消這張申請</button>`;
@@ -802,9 +876,9 @@ async function setVia(id,v){
   if(!fbReady()){toast('還在連線，請稍候');return;}
   try{await FB.upd(id,{via:v});toast('這張改成「'+VIA_NAME[v]+'」');}catch(e){toast('❌ 更新失敗');console.error(e);}
 }
-async function setSt(id,st){
+async function setSt(id,st,extra){
   if(!fbReady()){toast('還在連線，請稍候');return;}
-  const p={status:st};const now=Date.now();
+  const p={status:st,...(extra||{})};const now=Date.now();
   if(st==='已申請'){p.orderedTs=null;p.sentTs=null;p.shippedTs=null;p.stockedTs=null;p.cancelTs=null;}
   if(st==='已入庫')p.stockedTs=now;
   if(st==='已出貨')p.stockedTs=null;
@@ -1076,6 +1150,8 @@ const PUSH_URL = "https://script.google.com/macros/s/AKfycbxOfnIJOxzCE5SlfZYIpK6
 
 window.FB = {
   add: d => addDoc(COL, {...d, createdAt: serverTimestamp()}),
+  addPhotos: async (reqId, store, list) => { const b = writeBatch(db); list.forEach((data, i) => b.set(doc(collection(db, 'supplyPhotos')), {reqId, store, idx: i, data, ts: Date.now(), createdAt: serverTimestamp()})); await b.commit(); },
+  getPhotos: async reqId => { const sn = await getDocs(query(collection(db, 'supplyPhotos'), where('reqId', '==', reqId))); return sn.docs.map(d => d.data()).sort((a, b) => (a.ts - b.ts) || (a.idx - b.idx)).map(x => x.data); },
   addMany: async list => { const b = writeBatch(db); list.forEach(d => b.set(doc(COL), {...d, createdAt: serverTimestamp()})); await b.commit(); },
   upd: (id, p) => updateDoc(doc(db, 'supplyRequests', id), {...p, updatedAt: serverTimestamp()}),
   del: id => deleteDoc(doc(db, 'supplyRequests', id)),
