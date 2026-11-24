@@ -28,6 +28,26 @@ button{font-family:inherit;font-size:14px;cursor:pointer}
 input,select{font-family:inherit;font-size:16px}
 .wrap{max-width:1020px;margin:0 auto;padding:10px}
 @media (min-width:980px){ .wrap{max-width:1120px;padding:16px} }
+/* 「查上次盤點的庫存」手機版:一列拆成品名／編號·大類／庫存·最後盤到 三行,
+   桌機維持原本的五欄表格。不這樣做右邊兩欄會被 .tbl 的 overflow:hidden 切掉。 */
+@media (max-width:700px){
+  #bTbl thead{display:none}
+  #bTbl tbody{display:block}
+  #bTbl tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;
+           padding:11px 12px;border-bottom:1px solid #EDEFF2}
+  #bTbl tr::before{content:"";order:4;flex-basis:100%;height:0}
+  #bTbl td{display:block;border:0;padding:0;font-size:12.5px}
+  #bTbl td.b-name{order:1;flex-basis:100%;font-size:14.5px;font-weight:700;
+                  color:var(--ink);line-height:1.45;margin-bottom:3px}
+  #bTbl td.b-code{order:2}
+  #bTbl td.b-cat{order:3}
+  #bTbl td.b-cat::before{content:"· "}
+  #bTbl td.b-qty{order:5;text-align:left;margin-top:5px;font-size:14px;color:var(--ink)}
+  #bTbl td.b-qty::before{content:"當時電腦庫存 ";font-size:12px;color:var(--muted);font-weight:400}
+  #bTbl td.b-qty b{font-size:16px}
+  #bTbl td.b-seen{order:6;margin-top:5px}
+  #bTbl td.b-seen::before{content:"最後盤到 ";color:var(--muted)}
+}
 
 .brand{display:flex;align-items:center;gap:13px;background:var(--panel);
        border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:10px}
@@ -194,7 +214,7 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
       <div class="bmeta">
         <span id="mMonth"></span>
         <span id="mCount"></span>
-        <span style="color:#9AA1AA">版本 2026-11-19</span>
+        <span style="color:#9AA1AA">版本 2026-11-24</span>
       </div>
     </div>
     <a class="logout" href="/" title="回倚盟工具箱">☰ 工具箱</a>
@@ -220,12 +240,13 @@ tr.rtot td{font-weight:700;background:#F5F6F8}
     <div class="bar" style="margin-top:10px">
       <select id="bStore" style="padding:7px 9px;border:1px solid var(--line);border-radius:8px"></select>
       <button class="btn go" onclick="loadBase()">查詢</button>
+      <button class="btn" onclick="baseCsv()">匯出 Excel</button>
       <input id="bQ" placeholder="搜尋品名或商品編號" oninput="paintBase()"
              style="flex:1;min-width:180px;padding:7px 9px;border:1px solid var(--line);border-radius:8px">
       <span style="font-size:12px;color:var(--muted)" id="bMeta"></span>
     </div>
     <div class="tbl" style="margin-top:10px">
-      <table>
+      <table id="bTbl">
         <thead><tr>
           <th>商品編號</th><th>品名</th><th>大類</th>
           <th class="c-num">當時電腦庫存</th><th>最後盤到</th>
@@ -682,6 +703,37 @@ function baseRows(){
     qty: Number(BASE.qty[code]) || 0, seen: seen[code] ? fdate(seen[code]) : ''
   }));
 }
+/* 匯出目前查到／搜尋到的全部品項。畫面只畫前 400 列,但匯出是全部。 */
+function baseCsv(){
+  if(!BASE){ toast('請先選門市按「查詢」'); return; }
+  const qRaw = (document.getElementById('bQ').value || '').trim();
+  const q = qRaw.toLowerCase();
+  let rows = baseRows();
+  if(q) rows = rows.filter(r=>
+    r.code.toLowerCase().indexOf(q) >= 0 || r.name.toLowerCase().indexOf(q) >= 0);
+  if(!rows.length){ toast('沒有資料可以匯出'); return; }
+  rows.sort((a,b)=> (a.cat||'').localeCompare(b.cat||'') || (a.name||'').localeCompare(b.name||''));
+  const at = BASE.at ? fdate(BASE.at) : '';
+  const cell = v => {
+    const t = String(v==null?'':v);
+    return /[",\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t;
+  };
+  /* 純數字的商品編號丟進 Excel 會被當成數字吃掉開頭的 0,包成文字 */
+  const code = v => /^\d+$/.test(v) ? '="'+v+'"' : cell(v);
+  const head = ['門市','盤點日','商品編號','品名','大類','當時電腦庫存','最後盤到'];
+  const lines = [head.join(',')].concat(rows.map(r=>[
+    cell(BASE_STORE), cell(at), code(r.code), cell(r.name), cell(r.cat), r.qty, cell(r.seen)
+  ].join(',')));
+  const blob = new Blob(['\ufeff'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '上次盤點庫存_' + BASE_STORE + '_' + (at||'').replace(/\//g,'-')
+             + (qRaw ? '_搜尋'+qRaw : '') + '.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  toast('已匯出 ' + rows.length + ' 項');
+}
+
 function paintBase(){
   const tb = document.getElementById('bTb'), em = document.getElementById('bEmpty');
   const meta = document.getElementById('bMeta');
@@ -697,11 +749,11 @@ function paintBase(){
                    + (q ? '　符合 ' + rows.length + ' 項' : '');
   const show = rows.slice(0, BASE_MAX);
   tb.innerHTML = show.map(r=>`<tr>
-      <td style="font-family:ui-monospace,monospace;font-size:12.5px">${esc(r.code)}</td>
-      <td>${r.name ? esc(r.name) : '<span style="color:#9AA1AA">（舊資料沒有品名）</span>'}</td>
-      <td style="color:var(--muted);font-size:12.5px">${esc(r.cat)}</td>
-      <td class="c-num"><b>${r.qty}</b></td>
-      <td style="color:var(--muted);font-size:12.5px">${esc(r.seen) || '—'}</td>
+      <td class="b-code" style="font-family:ui-monospace,monospace;font-size:12.5px">${esc(r.code)}</td>
+      <td class="b-name">${r.name ? esc(r.name) : '<span style="color:#9AA1AA">（舊資料沒有品名）</span>'}</td>
+      <td class="b-cat" style="color:var(--muted);font-size:12.5px">${esc(r.cat)}</td>
+      <td class="b-qty c-num"><b>${r.qty}</b></td>
+      <td class="b-seen" style="color:var(--muted);font-size:12.5px">${esc(r.seen) || '—'}</td>
     </tr>`).join('');
   if(!rows.length){
     em.style.display='block';
