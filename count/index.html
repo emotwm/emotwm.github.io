@@ -2907,20 +2907,31 @@ function resultCSV(){
   });
   return out.join('\r\n');
 }
+/* 手機 / 平板才跳系統分享(可以存到「檔案」或直接傳 LINE);
+   電腦跳分享視窗很莫名其妙,一律直接下載到「下載」資料夾。 */
+function isMobile(){
+  const ua = navigator.userAgent;
+  if(/iPhone|iPod|Android/i.test(ua)) return true;
+  /* iPadOS 13 以後會自稱 Macintosh,靠觸控點數認出來 */
+  if(/Macintosh|Mac OS X/.test(ua) && navigator.maxTouchPoints > 1) return true;
+  return false;
+}
 async function saveResult(){
   if(!hasData()){ msg('請先載入盤點清單'); return; }
   const name = `盤點結果_${cur}_${stamp()}.csv`;
   const text = resultCSV();
   const n = allItems().length;
-  try{
-    const f = new File(['﻿'+text], name, {type:'text/csv'});
-    if(navigator.canShare && navigator.canShare({files:[f]})){
-      await navigator.share({files:[f], title:'盤點結果 ' + cur});
-      msg('盤點結果已存出 · 共 ' + n + ' 項'); return;
-    }
-  }catch(e){ if(e && e.name === 'AbortError') return; }
+  if(isMobile()){
+    try{
+      const f = new File(['﻿'+text], name, {type:'text/csv'});
+      if(navigator.canShare && navigator.canShare({files:[f]})){
+        await navigator.share({files:[f], title:'盤點結果 ' + cur});
+        msg('盤點結果已存出 · 共 ' + n + ' 項'); return;
+      }
+    }catch(e){ if(e && e.name === 'AbortError') return; }
+  }
   dl(name, text);
-  msg('盤點結果已下載 · 共 ' + n + ' 項');
+  msg('已下載到「下載」資料夾 · ' + name);
 }
 function exportDiff(){
   if(!hasData()) return;
