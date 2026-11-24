@@ -70,8 +70,9 @@ input,select{font-family:inherit;font-size:16px}
        box-shadow:0 2px 8px rgba(14,122,75,.28)}
 .bigup:active{opacity:.85}
 .bigup:disabled{background:#AEB4BC;box-shadow:none}
-.subprint{width:100%;padding:13px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
-          color:var(--ink);font-size:15px;font-weight:700;margin-bottom:10px}
+.subprint{width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
+          color:var(--ink);font-size:15px;font-weight:700;margin-bottom:8px;line-height:1.35}
+.subprint small{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:3px}
 .upstat{display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:10px;
         background:var(--wait-bg);color:var(--muted);font-size:13px;margin-bottom:9px;line-height:1.5}
 .upstat.done{background:var(--ok-bg);color:var(--ok);font-weight:700}
@@ -684,7 +685,12 @@ tr.flash td{animation:flashRow 1.1s ease-out}
       <div id="hisBody" class="hislist"></div>
     </details>
 
-    <button class="subprint" onclick="printRecord()">需要紙本時:列印紀錄表 / 存 PDF</button>
+    <div class="toolgrp" style="margin:12px 0 7px">門市要自己留底(上傳過也可以留)</div>
+    <button class="subprint" onclick="printRecord()">列印紀錄表
+      <small>要紙本就直接印;iPhone 在列印畫面選「儲存到檔案」就變 PDF</small></button>
+    <button class="subprint" onclick="saveResult()">下載盤點結果檔
+      <small>整份清單存成一個檔,Excel 直接開;沒網路也能存</small></button>
+
     <details class="repfold">
       <summary>看螢幕上的完整數字（不用印也可以先看）</summary>
       <div class="rep" id="repBody"></div>
@@ -699,7 +705,7 @@ tr.flash td{animation:flashRow 1.1s ease-out}
   </div>
 
   <details class="morefold">
-    <summary>其他功能　<span style="color:#9AA1AA">版本 2026-11-19b</span></summary>
+    <summary>其他功能　<span style="color:#9AA1AA">版本 2026-11-24</span></summary>
     <div class="toolgrp" style="margin-top:10px">盤點設定（平常不用動）</div>
   <div class="modebar" style="display:flex;gap:6px;margin-bottom:8px;font-size:13px;align-items:center;flex-wrap:wrap">
     <span style="color:var(--muted)">盤點方式</span>
@@ -747,7 +753,8 @@ tr.flash td{animation:flashRow 1.1s ease-out}
     <div class="foot">
       <b>換門市</b> — 系統下載的原始 .xls / .xlsx 檔傳到手機後,按「載入當天庫存檔」直接開,會自動套用盤點 SOP。<br>
       <b>各店分開存</b> — 切換門市不會互相蓋掉。<br>
-      <b>出報告</b> — 盤完切到「報告」分頁,按列印可在 iPhone 選「儲存到檔案」變成 PDF。
+      <b>出報告</b> — 盤完切到「報告」分頁,按列印可在 iPhone 選「儲存到檔案」變成 PDF。<br>
+      <b>自己留底</b> — 同一頁的「下載盤點結果檔」會把整份清單存成一個檔,Excel 直接開,沒網路也能存。
     </div>
   </details>
 </div>
@@ -2867,6 +2874,54 @@ function toCSV(rows){
   })).join('\r\n');
 }
 function exportAll(){ if(!hasData()) return; dl(`盤點結果_${cur}_${stamp()}.csv`, toCSV(allItems())); }
+/* ── 盤完當下留底:整份盤點結果存成一個檔,Excel 直接開 ──
+   手機先叫系統的「分享」(可以存到檔案、也可以直接傳 LINE),
+   不支援分享的裝置(多半是電腦)才走一般下載。全程不用網路。 */
+function resultCSV(){
+  const rows = allItems().slice().sort((a,b)=>
+    String(a.c||'').localeCompare(String(b.c||'')) ||
+    String(a.n||'').localeCompare(String(b.n||'')));
+  const day = todayStr();
+  const way = SCOPES[getScope()].label + '／' + kindCfg().label;
+  const head = ['門市','盤點日期','盤點範圍','大類','商品編號','品名',
+                '電腦庫存','實際盤到','差異','差異金額','狀況','沒掃到的序號'];
+  const out = [head.map(cell).join(',')];
+  rows.forEach(r=>{
+    const st = state(r);
+    let act='', d='', how='';
+    if(r.extra){
+      act = got(r.id)||0; d = act; how = '清單外(門市多出來的東西)';
+    }else if(st === 'wait'){
+      act = 0; d = -r.q; how = '沒盤到(現場找不到)';
+    }else{
+      const a = got(r.id);
+      act = a===null ? '' : a;
+      d   = a===null ? '' : a - r.q;
+      how = d==='' ? '未盤' : (d===0 ? '相符' : (d>0 ? '比電腦多' : '比電腦少'));
+    }
+    let amt = (d==='' || d===0) ? '' : Math.round(d * (r.cost||0));
+    /* 系統庫存是負的 = 帳目本身有問題,報告也不算進盈虧,這裡一樣不給差異 */
+    if(r.q < 0){ how = '系統負庫存(帳目要查)'; d = ''; amt = ''; }
+    out.push([cur, day, way, r.c||'', r.id, r.n, r.q, act, d, amt, how,
+              missingSns(r).join(' ')].map(cell).join(','));
+  });
+  return out.join('\r\n');
+}
+async function saveResult(){
+  if(!hasData()){ msg('請先載入盤點清單'); return; }
+  const name = `盤點結果_${cur}_${stamp()}.csv`;
+  const text = resultCSV();
+  const n = allItems().length;
+  try{
+    const f = new File(['﻿'+text], name, {type:'text/csv'});
+    if(navigator.canShare && navigator.canShare({files:[f]})){
+      await navigator.share({files:[f], title:'盤點結果 ' + cur});
+      msg('盤點結果已存出 · 共 ' + n + ' 項'); return;
+    }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  dl(name, text);
+  msg('盤點結果已下載 · 共 ' + n + ' 項');
+}
 function exportDiff(){
   if(!hasData()) return;
   const rows = allItems().filter(r=>state(r)!=='ok');
