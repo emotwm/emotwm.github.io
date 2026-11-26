@@ -210,7 +210,10 @@ textarea.inp{min-height:68px;resize:vertical}
 .vgrp:first-of-type{border-top:0;margin-top:0;padding-top:0}
 .vhd{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-bottom:4px}
 .vhd b{font-size:15px}
-.vhd span{font-size:12.5px;color:var(--muted)}
+.vhd span{font-size:14.5px;color:#5A4E44}
+.vrow .mname b{font-size:17px}
+.vrow .mname div{font-size:15.5px;line-height:1.6;color:#4A3F36;margin-top:3px}
+.vrow .mname .vph{font-weight:700;color:var(--ink)}
 .vbox{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-top:4px}
 .vbox .chk{display:flex;margin:6px 0}
 .v-direct{background:#EEF3FB;color:#1D5FA8}
@@ -335,7 +338,7 @@ table.st td.z{color:#D5CBBF}
      supplyRequests/{id}    申請單 {store,items:[{id,name,unit,qty}],by,remark,status,
                                     createdTs,orderedTs,shippedTs,cancelTs,hqNote,...}
    ═══════════════════════════════════════════════════════════ */
-const VER='2026.11.26a';
+const VER='2026.11.26b';
 const STORES=['鼎山店','陽明店','後昌店','仁雄店','凱旋店'];
 const FLOW=['已申請','已訂貨','已出貨','已入庫'];
 const DEFAULT_ITEMS=[
@@ -1091,7 +1094,7 @@ function vVendors(){
   const vs=vendList();
   h+=`<div class="card"><h2>廠商列表<small>${vs.length} 家</small></h2>`;
   if(!vs.length)h+=`<div class="empty">還沒有廠商，請從上面新增</div>`;
-  h+=vs.map((v,i)=>{const mine=its.filter(it=>it.vendorId===v.id);return `<div class="mrow"><div class="mname"><b>🏭 ${esc(v.name)}</b><div>${[v.contact,v.phone,v.line?'LINE '+v.line:''].filter(Boolean).map(esc).join('・')||'（沒有聯絡資料）'}${v.note?'・'+esc(v.note):''}</div><div>負責品項：${mine.length?mine.map(it=>esc(it.name)).join('、'):'<span class="unk">還沒指定</span>'}</div></div><button class="btn sm pri" onclick="editVend(${i})">編輯</button></div>`;}).join('');
+  h+=vs.map((v,i)=>{const mine=its.filter(it=>it.vendorId===v.id);return `<div class="mrow vrow"><div class="mname"><b>🏭 ${esc(v.name)}</b><div>${[v.contact?esc(v.contact):'',v.phone?`📞 <span class="vph">${esc(v.phone)}</span>`:'',v.line?'LINE '+esc(v.line):''].filter(Boolean).join('・')||'（沒有聯絡資料）'}${v.note?'・'+esc(v.note):''}</div><div>負責品項：${mine.length?mine.map(it=>esc(it.name)).join('、'):'<span class="unk">還沒指定</span>'}</div></div><button class="btn sm pri" onclick="editVend(${i})">編輯</button></div>`;}).join('');
   const none=its.filter(it=>!vendById(it.vendorId));
   if(none.length)h+=`<div class="hint" style="margin-top:10px">還沒指定廠商的品項：${none.map(it=>esc(it.name)).join('、')}</div>`;
   return h+'</div>';
